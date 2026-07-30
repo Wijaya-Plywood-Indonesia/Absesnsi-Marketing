@@ -1,0 +1,124 @@
+<?php
+
+namespace App\Filament\Resources\Visits\Schemas;
+
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+
+class VisitInfolist
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Foto Kunjungan')
+                    ->schema([
+                        ImageEntry::make('foto')
+                            ->label('')
+                            ->disk('public')
+                            ->height(400)
+                            ->extraImgAttributes(['class' => 'rounded-lg object-cover'])
+                            ->imageSize(400)
+                            ->url(fn ($record) => $record->foto ? asset('storage/'.$record->foto) : null)
+                            ->openUrlInNewTab(),
+                    ])
+                    ->collapsible(false),
+
+                Section::make('Informasi Kunjungan')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('customer.name')
+                                    ->label('Customer'),
+                                TextEntry::make('user.name')
+                                    ->label('Marketer'),
+                                TextEntry::make('tanggal')
+                                    ->label('Tanggal')
+                                    ->date('d M Y'),
+                                TextEntry::make('jam')
+                                    ->label('Jam'),
+                                TextEntry::make('hasil')
+                                    ->label('Hasil Kunjungan')
+                                    ->badge(),
+                                TextEntry::make('accuracy')
+                                    ->label('Akurasi GPS'),
+                            ]),
+                        TextEntry::make('catatan')
+                            ->label('Catatan')
+                            ->columnSpanFull(),
+                    ]),
+
+                Section::make('Lokasi')
+                    ->schema([
+                        TextEntry::make('latitude')
+                            ->label('Alamat')
+                            ->formatStateUsing(fn ($record) => self::reverseGeocode($record->latitude, $record->longitude))
+                            ->columnSpanFull(),
+                        TextEntry::make('latitude')
+                            ->label('')
+                            ->formatStateUsing(fn () => 'Buka di Google Maps')
+                            ->url(fn ($record) => "https://www.google.com/maps?q={$record->latitude},{$record->longitude}")
+                            ->openUrlInNewTab()
+                            ->color('primary')
+                            ->icon('heroicon-o-map-pin'),
+                    ]),
+            ]);
+    }
+
+    protected static function reverseGeocode(?float $lat, ?float $lng): string
+    {
+        if (! $lat || ! $lng) {
+            return '-';
+        }
+
+        $cacheKey = "geocode:{$lat},{$lng}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached) {
+            return $cached;
+        }
+
+        try {
+            // Nominatim MENOLAK (403) User-Agent generik seperti "Laravel", "PHP",
+            // "curl", dll — lihat https://operations.osmfoundation.org/policies/nominatim/.
+            // config('app.name') defaultnya "Laravel" kalau APP_NAME belum diisi di .env,
+            // jadi jangan pakai itu langsung. Pakai string identitas aplikasi yang jelas.
+            $response = Http::withHeaders([
+                'User-Agent' => 'WijayaPlywoodAbsensi/1.0 (admin@wijayaplywood.com)',
+            ])
+                ->timeout(10)
+                ->retry(2, 500)
+                ->get('https://nominatim.openstreetmap.org/reverse', [
+                    'lat' => $lat,
+                    'lon' => $lng,
+                    'format' => 'json',
+                    'zoom' => 18,
+                    'addressdetails' => 1,
+                ]);
+
+            if ($response->successful() && $response->json('display_name')) {
+                $address = $response->json('display_name');
+                // Cuma cache hasil yang BERHASIL — kalau gagal (mis. rate limit/network),
+                // jangan dicache, supaya percobaan berikutnya bisa retry, bukan kejebak
+                // fallback "lat, lng" selama 30 hari.
+                Cache::put($cacheKey, $address, now()->addDays(30));
+
+                return $address;
+            }
+
+            \Log::warning('Geocode gagal (non-success response)', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Geocode gagal (exception): '.$e->getMessage());
+        }
+
+        return "{$lat}, {$lng}";
+    }
+}
