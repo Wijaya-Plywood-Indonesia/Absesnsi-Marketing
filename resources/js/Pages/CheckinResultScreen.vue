@@ -43,7 +43,7 @@
         </div>
 
         <div class="field">
-            <label>Foto Toko (opsional)</label>
+            <label>Foto Toko <span style="color: var(--danger)">*</span></label>
             <input
                 type="file"
                 ref="fileInput"
@@ -54,6 +54,7 @@
             />
             <div
                 class="photo-drop"
+                :class="{ 'photo-drop-locked': isEditMode }"
                 @click="triggerFileInput"
                 style="
                     padding: 8px;
@@ -73,16 +74,25 @@
                             margin-bottom: 8px;
                         "
                     />
-                    <span style="font-size: 11px; color: var(--accent)"
+                    <span
+                        v-if="!isEditMode"
+                        style="font-size: 11px; color: var(--accent)"
                         >Ganti Foto</span
                     >
+                    <span
+                        v-else
+                        style="font-size: 11px; color: var(--text-muted)"
+                        >🔒 Foto tidak dapat diubah</span
+                    >
                 </template>
-                <template v-else> 📷 Ambil Foto Toko / Lokasi </template>
+                <template v-else>
+                    📷 Ambil Foto Toko / Lokasi (wajib)
+                </template>
             </div>
         </div>
         <button
             class="btn btn-primary"
-            :disabled="submitting || !checkinCoord"
+            :disabled="submitting || !checkinCoord || !photoPreview"
             @click="handleSaveCheckin"
         >
             {{ submitting ? "Menyimpan..." : "Simpan Kunjungan" }}
@@ -98,11 +108,22 @@
         >
             Lokasi belum diambil. Silakan kembali ke langkah 1.
         </div>
+        <div
+            v-else-if="!photoPreview"
+            style="
+                font-size: 12px;
+                color: var(--danger);
+                margin-top: 8px;
+                text-align: center;
+            "
+        >
+            Foto toko wajib diambil sebelum menyimpan kunjungan.
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useCheckinFlow } from "../composables/useCheckinFlow";
 import { useSuccessStamp } from "../composables/useSuccessStamp";
 import { useAppNav } from "../composables/useAppNav";
@@ -114,6 +135,8 @@ const {
     ciHasil,
     ciNote,
     checkinPhoto,
+    existingPhotoUrl,
+    isEditMode,
     submitting,
     enterCheckinResult,
     goToCheckinStep,
@@ -126,6 +149,8 @@ const fileInput = ref(null);
 const photoPreview = ref(null);
 
 function triggerFileInput() {
+    // Kalau sedang edit kunjungan yang sudah ada, foto terkunci (tidak bisa diganti).
+    if (isEditMode.value) return;
     fileInput.value.click();
 }
 
@@ -154,6 +179,15 @@ async function handleSaveCheckin() {
 onMounted(() => {
     enterCheckinResult();
 });
+
+// existingPhotoUrl datang dari fetchTodayVisit() (async, lewat API), jadi
+// belum tentu terisi tepat saat onMounted jalan — pakai watch supaya preview
+// tetap ke-set begitu data visit selesai di-fetch.
+watch(existingPhotoUrl, (url) => {
+    if (url && !checkinPhoto.value) {
+        photoPreview.value = url;
+    }
+});
 </script>
 
 <style scoped>
@@ -171,5 +205,9 @@ onMounted(() => {
 .address-line .address-text.muted {
     font-weight: 400;
     color: var(--text-muted);
+}
+.photo-drop-locked {
+    cursor: not-allowed;
+    opacity: 0.85;
 }
 </style>

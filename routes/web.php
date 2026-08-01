@@ -14,4 +14,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/order', [MarketerController::class, 'saveOrder'])->name('api.order.save');
     Route::get('/api/visits/today/{customer}', [MarketerController::class, 'todayVisit']);
     Route::post('/api/checkin/{visit}/update', [MarketerController::class, 'updateCheckin']);
+
+    // Tambahan untuk dropdown kota & kecamatan
+    Route::get('/api/wilayah/kota', [MarketerController::class, 'getKota'])->name('api.wilayah.kota');
+    Route::get('/api/wilayah/kecamatan', [MarketerController::class, 'getKecamatan'])->name('api.wilayah.kecamatan');
 });

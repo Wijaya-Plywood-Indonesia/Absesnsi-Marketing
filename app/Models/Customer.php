@@ -11,8 +11,6 @@ class Customer extends Model
         'name',
         'phone',
         'address',
-        'jalan',
-        'desa',
         'kecamatan',
         'kota',
         'latitude',

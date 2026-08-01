@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Visits\Schemas;
 
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -12,6 +13,9 @@ use Illuminate\Support\Facades\Http;
 
 class VisitInfolist
 {
+    // Samain dengan CHECKIN_RADIUS_METERS di app mobile.
+    protected const CHECKIN_RADIUS_METERS = 100;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -46,7 +50,8 @@ class VisitInfolist
                                     ->label('Hasil Kunjungan')
                                     ->badge(),
                                 TextEntry::make('accuracy')
-                                    ->label('Akurasi GPS'),
+                                    ->label('Akurasi GPS')
+                                    ->suffix(' m'),
                             ]),
                         TextEntry::make('catatan')
                             ->label('Catatan')
@@ -59,6 +64,52 @@ class VisitInfolist
                             ->label('Alamat')
                             ->formatStateUsing(fn ($record) => self::reverseGeocode($record->latitude, $record->longitude))
                             ->columnSpanFull(),
+
+                        // Badge jarak ke toko: dalam radius / di luar radius,
+                        // sama seperti validasi di app mobile saat check-in.
+                        TextEntry::make('distance_to_store')
+                            ->label('Jarak ke Toko')
+                            ->state(function ($record) {
+                                $distance = self::distanceToStore($record);
+
+                                if ($distance === null) {
+                                    return 'Koordinat toko tidak tersedia';
+                                }
+
+                                return round($distance).' m (maks. '.self::CHECKIN_RADIUS_METERS.' m)';
+                            })
+                            ->badge()
+                            ->color(function ($record) {
+                                $distance = self::distanceToStore($record);
+
+                                if ($distance === null) {
+                                    return 'gray';
+                                }
+
+                                return $distance <= self::CHECKIN_RADIUS_METERS ? 'success' : 'danger';
+                            })
+                            ->icon(function ($record) {
+                                $distance = self::distanceToStore($record);
+
+                                if ($distance === null) {
+                                    return null;
+                                }
+
+                                return $distance <= self::CHECKIN_RADIUS_METERS
+                                    ? 'heroicon-o-check-circle'
+                                    : 'heroicon-o-exclamation-triangle';
+                            })
+                            ->columnSpanFull(),
+
+                        // Peta 1 root <div>, semua logic di Alpine x-init (menghindari
+                        // MultipleRootElementsDetectedException dari Livewire).
+                        // Lingkaran biru = akurasi GPS kunjungan, lingkaran oranye
+                        // putus-putus = radius toleransi check-in di sekitar toko.
+                        ViewEntry::make('map')
+                            ->label('')
+                            ->view('filament.infolists.visit-map')
+                            ->columnSpanFull(),
+
                         TextEntry::make('latitude')
                             ->label('')
                             ->formatStateUsing(fn () => 'Buka di Google Maps')
@@ -68,6 +119,38 @@ class VisitInfolist
                             ->icon('heroicon-o-map-pin'),
                     ]),
             ]);
+    }
+
+    protected static function distanceToStore($record): ?float
+    {
+        $visitLat = $record->latitude;
+        $visitLng = $record->longitude;
+        $storeLat = $record->customer?->latitude;
+        $storeLng = $record->customer?->longitude;
+
+        if (! $visitLat || ! $visitLng || ! $storeLat || ! $storeLng) {
+            return null;
+        }
+
+        return self::haversineMeters(
+            (float) $visitLat,
+            (float) $visitLng,
+            (float) $storeLat,
+            (float) $storeLng,
+        );
+    }
+
+    protected static function haversineMeters(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadius = 6371000;
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+
+        $a = sin($dLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
+        return 2 * $earthRadius * asin(sqrt($a));
     }
 
     protected static function reverseGeocode(?float $lat, ?float $lng): string

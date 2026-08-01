@@ -17,6 +17,11 @@ class Visit extends Model
         'latitude',
         'longitude',
         'accuracy',
+        'is_outside_area',
+    ];
+
+    protected $casts = [
+        'is_outside_area' => 'boolean',
     ];
 
     public function customer()

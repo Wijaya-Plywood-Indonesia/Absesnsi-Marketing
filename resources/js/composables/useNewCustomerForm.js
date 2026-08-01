@@ -7,8 +7,7 @@ import { reverseGeocode, friendlyGeoError, resetGeolocation } from "./geocode";
 
 const ncName = ref("");
 const ncPhone = ref("");
-const ncJalan = ref("");
-const ncDesa = ref("");
+const ncAddress = ref("");
 const ncKecamatan = ref("");
 const ncKota = ref("");
 const ncCoord = ref(null);
@@ -65,8 +64,8 @@ export function useNewCustomerForm() {
                         };
                     }
                     if (geo) {
-                        if (geo.desa && !ncDesa.value.trim()) {
-                            ncDesa.value = geo.desa;
+                        if (geo.display_name && !ncAddress.value.trim()) {
+                            ncAddress.value = geo.display_name;
                         }
                         if (geo.kecamatan && !ncKecamatan.value.trim()) {
                             ncKecamatan.value = geo.kecamatan;
@@ -101,10 +100,20 @@ export function useNewCustomerForm() {
             return;
         }
 
+        if (!ncAddress.value.trim()) {
+            alert("Alamat wajib diisi.");
+            return;
+        }
+
         if (!ncCoord.value) {
             alert(
                 "Lokasi toko belum diambil. Tekan 'Ambil Lokasi Sekarang' terlebih dahulu.",
             );
+            return;
+        }
+
+        if (!ncKota.value || !ncKecamatan.value) {
+            alert("Kota dan Kecamatan wajib diisi.");
             return;
         }
 
@@ -121,13 +130,13 @@ export function useNewCustomerForm() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                Accept: "application/json",
                 "X-CSRF-TOKEN": csrfToken.value,
             },
             body: JSON.stringify({
                 name: ncName.value,
                 phone: ncPhone.value,
-                jalan: ncJalan.value,
-                desa: ncDesa.value,
+                address: ncAddress.value,
                 kecamatan: ncKecamatan.value,
                 kota: ncKota.value,
                 pola: "Eceran",
@@ -136,10 +145,19 @@ export function useNewCustomerForm() {
                 longitude: lng,
             }),
         })
-            .then((res) => res.json())
+            .then(async (res) => {
+                const data = await res.json().catch(() => null);
+                if (!res.ok) {
+                    throw new Error(
+                        data?.message ||
+                            `Gagal menyimpan (HTTP ${res.status}).`,
+                    );
+                }
+                return data;
+            })
             .then((data) => {
                 submitting.value = false;
-                if (data.success) {
+                if (data?.success) {
                     const newCustId = data.customer.id;
 
                     addCustomer({
@@ -147,8 +165,7 @@ export function useNewCustomerForm() {
                         name: ncName.value,
                         addr:
                             formatAddr({
-                                jalan: ncJalan.value,
-                                desa: ncDesa.value,
+                                address: ncAddress.value,
                                 kecamatan: ncKecamatan.value,
                                 kota: ncKota.value,
                             }) || "-",
@@ -162,8 +179,7 @@ export function useNewCustomerForm() {
 
                     ncName.value = "";
                     ncPhone.value = "";
-                    ncJalan.value = "";
-                    ncDesa.value = "";
+                    ncAddress.value = "";
                     ncKecamatan.value = "";
                     ncKota.value = "";
                     ncCoord.value = null;
@@ -179,15 +195,14 @@ export function useNewCustomerForm() {
             .catch((err) => {
                 submitting.value = false;
                 console.error(err);
-                alert("Terjadi kesalahan koneksi.");
+                alert(err.message || "Terjadi kesalahan koneksi.");
             });
     }
 
     return {
         ncName,
         ncPhone,
-        ncJalan,
-        ncDesa,
+        ncAddress,
         ncKecamatan,
         ncKota,
         ncCoord,

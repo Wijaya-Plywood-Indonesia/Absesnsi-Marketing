@@ -6,8 +6,10 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Visit;
+use App\Models\Wilayah;
 use App\Services\ImageWatermarkService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MarketerController extends Controller
 {
@@ -44,7 +46,18 @@ class MarketerController extends Controller
 
         $products = Product::orderBy('name')->get();
 
-        return view('marketer.dashboard', compact('customers', 'visits', 'orders', 'user', 'products'));
+        $dailyTarget = $user->daily_target;
+        $todayVisitCount = $visits->where('tanggal', now()->toDateString())->count();
+
+        return view('marketer.dashboard', compact(
+            'customers',
+            'visits',
+            'orders',
+            'user',
+            'products',
+            'dailyTarget',
+            'todayVisitCount'
+        ));
     }
 
     public function showLogin()
@@ -95,13 +108,17 @@ class MarketerController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:50',
-            'jalan' => 'nullable|string|max:255',
-            'desa' => 'nullable|string|max:255',
-            'kecamatan' => 'nullable|string|max:255',
-            'kota' => 'nullable|string|max:255',
-            'latitude' => 'nullable|string',
-            'longitude' => 'nullable|string',
+            'phone' => 'required|string|max:50',
+            'address' => 'required|string|max:1000',
+            'kota' => 'required|string|max:255|exists:wilayahs,kota',
+            'kecamatan' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::exists('wilayahs', 'kecamatan')->where('kota', $request->kota),
+            ],
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
             'pola' => 'required|string',
             'jenis' => 'required|string',
         ]);
@@ -110,10 +127,9 @@ class MarketerController extends Controller
             'user_id' => auth()->id(),
             'name' => $request->name,
             'phone' => $request->phone,
-            'jalan' => $request->jalan,
-            'desa' => $request->desa,
-            'kecamatan' => $request->kecamatan,
+            'address' => $request->address,
             'kota' => $request->kota,
+            'kecamatan' => $request->kecamatan,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'pola' => $request->pola,
@@ -138,7 +154,7 @@ class MarketerController extends Controller
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'accuracy' => 'nullable|string',
-            'alamat_text' => 'nullable|string',   // ← TAMBAHKAN INI
+            'alamat_text' => 'nullable|string',
             'foto' => 'nullable|image|max:5120',
         ]);
 
@@ -157,6 +173,11 @@ class MarketerController extends Controller
 
         $customer = Customer::findOrFail($request->customer_id);
 
+        // Dulu: check-in di luar radius DITOLAK (return 422).
+        // Sekarang: check-in tetap disimpan, tapi ditandai is_outside_area = true
+        // supaya bisa dipantau admin tanpa mengganggu kerja marketer di lapangan.
+        $isOutsideArea = false;
+
         if ($customer->latitude && $customer->longitude) {
             $distance = $this->distanceMeters(
                 (float) $request->latitude,
@@ -165,16 +186,7 @@ class MarketerController extends Controller
                 (float) $customer->longitude,
             );
 
-            if ($distance > self::CHECKIN_RADIUS_METERS) {
-                return response()->json([
-                    'success' => false,
-                    'message' => sprintf(
-                        'Lokasi terlalu jauh dari toko (%.0f m, maksimal %d m).',
-                        $distance,
-                        self::CHECKIN_RADIUS_METERS,
-                    ),
-                ], 422);
-            }
+            $isOutsideArea = $distance > self::CHECKIN_RADIUS_METERS;
         }
 
         $fotoPath = null;
@@ -184,7 +196,7 @@ class MarketerController extends Controller
                 watermarkLines: [
                     $customer->name,
                     now()->format('d M Y, H:i').' WIB',
-                    $request->alamat_text                                         // ← GANTI BARIS INI
+                    $request->alamat_text
                         ?: 'Lat: '.number_format((float) $request->latitude, 6).', Lng: '.number_format((float) $request->longitude, 6),
                 ],
             );
@@ -201,11 +213,13 @@ class MarketerController extends Controller
             'longitude' => $request->longitude,
             'accuracy' => $request->accuracy,
             'foto' => $fotoPath,
+            'is_outside_area' => $isOutsideArea,
         ]);
 
         return response()->json([
             'success' => true,
             'visit' => $visit->load('customer'),
+            'is_outside_area' => $isOutsideArea,
         ]);
     }
 
@@ -230,6 +244,7 @@ class MarketerController extends Controller
                 'foto' => $visit->foto ? asset('storage/'.$visit->foto) : null,
                 'latitude' => $visit->latitude,
                 'longitude' => $visit->longitude,
+                'is_outside_area' => $visit->is_outside_area,
             ],
         ]);
     }
@@ -332,5 +347,23 @@ class MarketerController extends Controller
             'success' => true,
             'order' => $order->load(['customer', 'orderItems.product']),
         ]);
+    }
+
+    public function getKota()
+    {
+        return response()->json(
+            Wilayah::daftarKota()
+        );
+    }
+
+    public function getKecamatan(Request $request)
+    {
+        $request->validate([
+            'kota' => 'required|string|max:255',
+        ]);
+
+        return response()->json(
+            Wilayah::daftarKecamatan($request->kota)
+        );
     }
 }

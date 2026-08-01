@@ -59,33 +59,20 @@
 
         <div class="scroll" style="padding-bottom: 90px">
             <span class="eyebrow">Untuk Customer</span>
-            <div
-                class="card"
-                style="
-                    margin-bottom: 16px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                "
-            >
+            <div class="card flex justify-between items-center mb-4">
                 <div class="info-line" style="border: none; padding: 0">
-                    <span class="k">Toko</span>
-                    <span class="v">{{
+                    <span class="v text-xl font-bold">{{
                         currentCustomer ? currentCustomer.name : "-"
                     }}</span>
                 </div>
                 <button
-                    v-if="allowChangeStore"
-                    class="btn-ghost"
+                    class="text-xs text-[var(--accent)] bg-transparent border-0 cursor-pointer"
                     @click="step = 1"
                 >
                     Ganti
                 </button>
             </div>
-
-            <div class="section-title" style="margin-top: 6px">
-                Cari Produk
-            </div>
+            <div class="section-title" style="margin-top: 6px">Cari Produk</div>
             <div class="search-box">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
                     <circle cx="11" cy="11" r="7" />
@@ -96,7 +83,7 @@
                     placeholder="Cari nama produk..."
                 />
             </div>
-            <div v-if="productSearch.trim()" class="prod-list">
+            <div v-if="productSearch.trim()" class="flex flex-col gap-2.5">
                 <div
                     v-if="!searchResults.length"
                     class="empty-note"
@@ -107,43 +94,64 @@
                 <div
                     v-for="p in searchResults"
                     :key="p.id"
-                    class="prod-row prod-row--add"
+                    class="card flex justify-between items-center gap-3 cursor-pointer"
                     @click="addToCart(p)"
                 >
-                    <div>
-                        <div class="pname">{{ p.name }}</div>
-                        <div class="punit">per {{ p.unit }}</div>
+                    <div class="min-w-0">
+                        <div class="font-semibold text-sm">{{ p.name }}</div>
+                        <div class="text-xs text-[var(--text-muted)] mt-0.5">
+                            per {{ p.unit }}
+                        </div>
                     </div>
-                    <span class="add-icon">+</span>
+                    <span
+                        class="shrink-0 w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-lg leading-none"
+                        >+</span
+                    >
                 </div>
             </div>
 
             <div class="section-title" style="margin-top: 20px">
                 Keranjang Order
             </div>
-            <div v-if="cartItems.length" class="prod-list">
+            <div v-if="cartItems.length" class="flex flex-col gap-2.5">
                 <div
                     v-for="(item, i) in cartItems"
                     :key="item.product_id"
-                    class="prod-row"
+                    class="flex justify-between items-center card"
                 >
                     <div>
-                        <div class="pname">{{ item.name }}</div>
-                        <div class="punit">per {{ item.unit }}</div>
+                        <div class="font-semibold text-sm">{{ item.name }}</div>
+                        <div class="text-xs text-[var(--text-muted)] mt-0.5">
+                            per {{ item.unit }}
+                        </div>
                     </div>
-                    <div class="stepper">
-                        <button @click="stepCartQty(i, -1)">−</button>
-                        <span class="qty">{{ item.qty }}</span>
-                        <button @click="stepCartQty(i, 1)">+</button>
-                        <button class="remove-btn" @click="removeFromCart(i)">
+                    <div class="flex items-center gap-3">
+                        <button
+                            class="w-7 h-7 rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-base leading-none cursor-pointer"
+                            @click="stepCartQty(i, -1)"
+                        >
+                            −
+                        </button>
+                        <span class="min-w-[20px] text-center font-semibold">{{
+                            item.qty
+                        }}</span>
+                        <button
+                            class="w-7 h-7 rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-base leading-none cursor-pointer"
+                            @click="stepCartQty(i, 1)"
+                        >
+                            +
+                        </button>
+                        <button
+                            class="w-6 h-6 rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] text-sm leading-none cursor-pointer ml-1"
+                            @click="removeFromCart(i)"
+                        >
                             ×
                         </button>
                     </div>
                 </div>
             </div>
             <div v-else class="empty-note">
-                Belum ada produk dipilih. Cari produk di atas untuk
-                menambahkan.
+                Belum ada produk dipilih. Cari produk di atas untuk menambahkan.
             </div>
 
             <div class="field" style="margin-top: 16px">
@@ -160,8 +168,7 @@
                 Item dipilih<br /><b>{{ cartItems.length }}</b>
             </div>
             <button
-                class="btn btn-primary"
-                style="flex: 1"
+                class="btn btn-primary flex-1"
                 :disabled="submitting"
                 @click="handleSubmitOrder"
             >
@@ -178,7 +185,8 @@ import { useOrders } from "../composables/useOrders";
 import { useSuccessStamp } from "../composables/useSuccessStamp";
 import { useAppNav } from "../composables/useAppNav";
 
-const { currentCustomer, currentCustomerId, customerList } = useCustomers();
+const { currentCustomer, currentCustomerId, customerList, setCurrentCustomer } =
+    useCustomers();
 const { products, submitOrder } = useOrders();
 const { setSuccessStamp } = useSuccessStamp();
 const { nav } = useAppNav();
@@ -220,12 +228,11 @@ function removeFromCart(index) {
     cartItems.value.splice(index, 1);
 }
 
-// Kondisi awal dicek sekali saja saat screen dibuka:
-// - kalau currentCustomerId sudah ada (masuk dari tombol "Request Order" di detail toko) -> langsung step 2, tombol "Ganti" disembunyikan
-// - kalau kosong (masuk dari tombol + di list Order) -> mulai step 1, pilih toko dulu
-const openedWithCustomer = currentCustomerId.value !== null;
-const step = ref(openedWithCustomer ? 2 : 1);
-const allowChangeStore = !openedWithCustomer;
+// Step awal: kalau sudah ada customer aktif (mis. masuk dari detail toko),
+// langsung ke step 2. Kalau belum, mulai dari pilih toko.
+// Tombol "Ganti" selalu ditampilkan di step 2, jadi toko bisa diganti
+// kapan saja tanpa kehilangan keranjang/catatan yang sudah diisi.
+const step = ref(currentCustomerId.value !== null ? 2 : 1);
 
 const storeSearch = ref("");
 const filteredStores = computed(() => {
@@ -235,15 +242,12 @@ const filteredStores = computed(() => {
 });
 
 function pickCustomer(id) {
+    setCurrentCustomer(id);
     step.value = 2;
 }
 
 function backFromStep2() {
-    if (allowChangeStore) {
-        step.value = 1;
-    } else {
-        nav("customerDetail");
-    }
+    step.value = 1;
 }
 
 async function handleSubmitOrder() {
@@ -291,84 +295,3 @@ async function handleSubmitOrder() {
     }
 }
 </script>
-
-<style scoped>
-.btn-ghost {
-    font-size: 12px;
-    color: var(--accent);
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-.prod-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.prod-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px 14px;
-}
-.pname {
-    font-weight: 600;
-    font-size: 14px;
-}
-.punit {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 2px;
-}
-.stepper {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.stepper button {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-}
-.qty {
-    min-width: 20px;
-    text-align: center;
-    font-weight: 600;
-}
-.prod-row--add {
-    cursor: pointer;
-}
-.add-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    line-height: 1;
-}
-.remove-btn {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text-muted);
-    font-size: 14px;
-    line-height: 1;
-    cursor: pointer;
-    margin-left: 4px;
-}
-</style>

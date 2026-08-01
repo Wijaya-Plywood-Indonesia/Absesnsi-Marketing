@@ -8,13 +8,20 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+
+
     use WithoutModelEvents;
 
     /**
      * Seed the application's database.
      */
+
+    
     public function run(): void
     {
+
+    
+        /*
         // 1. Create Admin
         $admin = User::create([
             'name' => 'Administrator',
@@ -103,5 +110,6 @@ class DatabaseSeeder extends Seeder
         foreach ($products as $p) {
             \App\Models\Product::create($p);
         }
+        */
     }
 }

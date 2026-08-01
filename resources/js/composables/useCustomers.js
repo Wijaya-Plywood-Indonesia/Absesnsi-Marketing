@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 
 const customerList = ref([]);
@@ -6,10 +6,17 @@ const searchQuery = ref("");
 const activeFilter = ref("Semua");
 let initialized = false;
 
+// ubah jadi state module-level yang bisa di-set manual
+const currentCustomerId = ref(null);
+
+function setCurrentCustomer(id) {
+    currentCustomerId.value = id ?? null;
+}
+
 function formatAddr(c) {
-    const parts = [c.jalan, c.desa, c.kecamatan, c.kota].filter(Boolean);
-    if (parts.length) return parts.join(", ");
-    return c.address || null;
+    if (c.address) return c.address;
+    const parts = [c.kecamatan, c.kota].filter(Boolean);
+    return parts.length ? parts.join(", ") : null;
 }
 
 function initCustomers(initialCustomers) {
@@ -49,16 +56,23 @@ const filteredCustomers = computed(() => {
 
 const plannedCustomers = computed(() => customerList.value.slice(0, 3));
 
+const currentCustomer = computed(() =>
+    customerList.value.find((c) => c.id === currentCustomerId.value),
+);
+
 export function useCustomers() {
     const route = useRoute();
 
-    const currentCustomerId = computed(() => {
-        const id = route.params.id;
-        return id ? parseInt(id, 10) : null;
-    });
-
-    const currentCustomer = computed(() =>
-        customerList.value.find((c) => c.id === currentCustomerId.value),
+    // sinkronkan currentCustomerId dari route param :id
+    // setiap kali route punya param id (mis. masuk dari /customer-detail/5)
+    watch(
+        () => route.params.id,
+        (id) => {
+            if (id) {
+                currentCustomerId.value = parseInt(id, 10);
+            }
+        },
+        { immediate: true },
     );
 
     return {
@@ -73,5 +87,6 @@ export function useCustomers() {
         getCustomerName,
         formatAddr,
         addCustomer,
+        setCurrentCustomer, // <-- baru
     };
 }
