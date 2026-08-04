@@ -38,12 +38,12 @@
                 >
             </div>
         </div>
-        <div class="action-row flex gap-[10px] mt-[18px]">
-            <button class="btn btn-primary font-sans font-semibold text-[14.5px] rounded-[12px] border-none px-[18px] py-[14px] cursor-pointer flex items-center justify-center gap-[8px] w-full bg-[var(--accent)] text-[var(--accent-ink)] active:scale-[0.98] disabled:bg-[var(--border)] disabled:text-[var(--text-faint)] disabled:cursor-not-allowed" @click="handleMulaiKunjungan">
+        <div class="action-row flex gap-[10px] mt-[18px] mb-[22px]">
+            <button class="btn btn-primary font-sans font-semibold text-[14.5px] rounded-[12px] border-none px-[18px] py-[14px] cursor-pointer flex items-center justify-center gap-[8px] flex-1 bg-[var(--accent)] text-[var(--accent-ink)] active:scale-[0.98] disabled:bg-[var(--border)] disabled:text-[var(--text-faint)] disabled:cursor-not-allowed" @click="handleMulaiKunjungan">
                 {{ alreadyVisitedToday ? "Edit Kunjungan" : "Mulai Kunjungan" }}
             </button>
             <button
-                class="btn btn-outline font-sans font-semibold text-[14.5px] rounded-[12px] bg-transparent text-[var(--text)] border border-[var(--border)] px-[18px] py-[14px] cursor-pointer flex items-center justify-center gap-[8px] w-full"
+                class="btn btn-outline font-sans font-semibold text-[14.5px] rounded-[12px] bg-transparent text-[var(--text)] border border-[var(--border)] px-[18px] py-[14px] cursor-pointer flex items-center justify-center gap-[8px] flex-1"
                 @click="nav('orderForm', currentCustomer.id)"
             >
                 Request Order
