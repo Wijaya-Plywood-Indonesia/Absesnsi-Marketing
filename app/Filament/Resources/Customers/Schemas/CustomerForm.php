@@ -6,11 +6,14 @@ use App\Models\User;
 use App\Models\Wilayah;
 use Dotswan\MapPicker\Fields\Map;
 use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class CustomerForm
 {
@@ -26,7 +29,8 @@ class CustomerForm
 
                 TextInput::make('name')
                     ->label('Nama Customer')
-                    ->required(),
+                    ->required()
+                    ->live(onBlur: true),
 
                 TextInput::make('phone')
                     ->label('Nomor Telepon')
@@ -38,6 +42,33 @@ class CustomerForm
                     ->helperText('Jalan, patokan, detail lokasi')
                     ->columnSpanFull()
                     ->required(),
+
+                FileUpload::make('foto')
+                    ->label('Foto Depan Toko')
+                    ->image()
+                    ->disk('public')
+                    ->directory('customers')
+                    ->visibility('public')
+                    ->imageEditor()
+                    ->imagePreviewHeight('200')
+                    ->maxSize(5120)
+                    ->getUploadedFileNameForStorageUsing(
+                        function (TemporaryUploadedFile $file, callable $get): string {
+                            $baseSlug = Str::slug($get('name')) ?: 'toko';
+                            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+
+                            $filename = $baseSlug.'.'.$extension;
+                            $counter = 1;
+
+                            while (\Storage::disk('public')->exists('customers/'.$filename)) {
+                                $filename = $baseSlug.'-'.$counter.'.'.$extension;
+                                $counter++;
+                            }
+
+                            return $filename;
+                        }
+                    )
+                    ->columnSpanFull(),
 
                 Grid::make(2)
                     ->schema([

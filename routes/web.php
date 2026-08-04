@@ -18,4 +18,8 @@ Route::middleware('auth')->group(function () {
     // Tambahan untuk dropdown kota & kecamatan
     Route::get('/api/wilayah/kota', [MarketerController::class, 'getKota'])->name('api.wilayah.kota');
     Route::get('/api/wilayah/kecamatan', [MarketerController::class, 'getKecamatan'])->name('api.wilayah.kecamatan');
+
+    Route::post('/customer/{customer}/foto', [MarketerController::class, 'updateCustomerPhoto'])
+        ->name('customer.updateFoto');
+
 });

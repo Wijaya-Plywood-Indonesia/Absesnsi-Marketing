@@ -25,6 +25,33 @@
                     placeholder="08xx-xxxx-xxxx"
                 />
             </div>
+
+            <div class="field">
+                <label>Foto Depan Toko</label>
+
+                <div v-if="ncFotoPreview" class="foto-preview-wrap">
+                    <img
+                        :src="ncFotoPreview"
+                        class="foto-preview"
+                        alt="Preview foto toko"
+                    />
+                    <button type="button" class="btn btn-ghost" @click="clearFoto">
+                        🗑️ Hapus Foto
+                    </button>
+                </div>
+
+                <label v-else class="foto-picker">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        @change="onFotoChange"
+                        style="display: none"
+                    />
+                    📷 Ambil / Pilih Foto Toko
+                </label>
+            </div>
+
             <div class="field">
                 <label>Alamat Lengkap</label>
                 <textarea
@@ -151,10 +178,12 @@
             </template>
         </div>
 
+
+
         <button
             class="btn btn-primary"
             :disabled="submitting || !ncCoord || !ncKota || !ncKecamatan"
-            @click="saveCustomer"
+            @click="onSubmit"
         >
             {{
                 submitting
@@ -227,6 +256,38 @@ function onLatLngInput() {
     const lat = toNum(ncLat.value);
     const lng = toNum(ncLng.value);
     ncCoord.value = { ...(ncCoord.value || {}), lat, lng };
+}
+
+/* ---------------- Foto toko ---------------- */
+
+const ncFoto = ref(null); // File object yang akan dikirim
+const ncFotoPreview = ref(""); // Object URL untuk preview
+
+function onFotoChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    ncFoto.value = file;
+
+    if (ncFotoPreview.value) {
+        URL.revokeObjectURL(ncFotoPreview.value);
+    }
+    ncFotoPreview.value = URL.createObjectURL(file);
+}
+
+function clearFoto() {
+    if (ncFotoPreview.value) {
+        URL.revokeObjectURL(ncFotoPreview.value);
+    }
+    ncFoto.value = null;
+    ncFotoPreview.value = "";
+}
+
+/* Bungkus saveCustomer supaya ikut kirim file foto.
+   Sesuaikan dengan signature asli saveCustomer() di composable. */
+async function onSubmit() {
+    await saveCustomer(ncFoto.value);
+    clearFoto();
 }
 
 /* ---------------- Wilayah dropdown ---------------- */
@@ -346,7 +407,12 @@ watch(ncCoord, (val) => {
     }
 });
 
-onBeforeUnmount(destroyMap);
+onBeforeUnmount(() => {
+    destroyMap();
+    if (ncFotoPreview.value) {
+        URL.revokeObjectURL(ncFotoPreview.value);
+    }
+});
 </script>
 
 <style scoped>
@@ -375,5 +441,28 @@ onBeforeUnmount(destroyMap);
 .form-fields:disabled,
 .form-fields[disabled] {
     opacity: 0.45;
+}
+.foto-picker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    border: 1.5px dashed rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+}
+.foto-preview-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+.foto-preview {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 12px;
 }
 </style>

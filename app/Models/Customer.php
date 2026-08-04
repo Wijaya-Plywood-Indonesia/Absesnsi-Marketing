@@ -18,7 +18,13 @@ class Customer extends Model
         'pola',
         'jenis',
         'status',
+        'foto',
     ];
+
+    // kalau pakai kolom json untuk multi foto, tambahkan casts:
+    // protected $casts = [
+    //     'foto' => 'array',
+    // ];
 
     public function user()
     {

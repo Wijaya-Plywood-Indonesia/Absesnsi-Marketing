@@ -94,7 +94,10 @@ export function useNewCustomerForm() {
         );
     }
 
-    function saveCustomer() {
+    /**
+     * @param {File|null} fotoFile - foto depan toko (opsional)
+     */
+    function saveCustomer(fotoFile = null) {
         if (!ncName.value.trim()) {
             alert("Nama toko wajib diisi.");
             return;
@@ -126,24 +129,27 @@ export function useNewCustomerForm() {
                 ? ncJenisLain.value || "Lainnya"
                 : ncJenis.value;
 
+        const formData = new FormData();
+        formData.append("name", ncName.value);
+        formData.append("phone", ncPhone.value);
+        formData.append("address", ncAddress.value);
+        formData.append("kecamatan", ncKecamatan.value);
+        formData.append("kota", ncKota.value);
+        formData.append("pola", "Eceran");
+        formData.append("jenis", jenisValue);
+        formData.append("latitude", lat);
+        formData.append("longitude", lng);
+        if (fotoFile) {
+            formData.append("foto", fotoFile);
+        }
+
         fetch("/api/customer", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
                 Accept: "application/json",
                 "X-CSRF-TOKEN": csrfToken.value,
             },
-            body: JSON.stringify({
-                name: ncName.value,
-                phone: ncPhone.value,
-                address: ncAddress.value,
-                kecamatan: ncKecamatan.value,
-                kota: ncKota.value,
-                pola: "Eceran",
-                jenis: jenisValue,
-                latitude: lat,
-                longitude: lng,
-            }),
+            body: formData,
         })
             .then(async (res) => {
                 const data = await res.json().catch(() => null);
@@ -175,6 +181,7 @@ export function useNewCustomerForm() {
                         jenis: jenisValue,
                         lat,
                         lng,
+                        foto: data.customer.foto || null,
                     });
 
                     ncName.value = "";
