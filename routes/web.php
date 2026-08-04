@@ -1,25 +1,29 @@
 <?php
 
-use App\Http\Controllers\MarketerController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CheckinController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\WilayahController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [MarketerController::class, 'index'])->name('dashboard');
-Route::get('/login', [MarketerController::class, 'showLogin'])->name('login');
-Route::post('/login', [MarketerController::class, 'login']);
-Route::post('/logout', [MarketerController::class, 'logout'])->name('logout');
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
-    Route::post('/api/customer', [MarketerController::class, 'saveCustomer'])->name('api.customer.save');
-    Route::post('/api/checkin', [MarketerController::class, 'saveCheckin'])->name('api.checkin.save');
-    Route::post('/api/order', [MarketerController::class, 'saveOrder'])->name('api.order.save');
-    Route::get('/api/visits/today/{customer}', [MarketerController::class, 'todayVisit']);
-    Route::post('/api/checkin/{visit}/update', [MarketerController::class, 'updateCheckin']);
+    Route::post('/api/customer', [CustomerController::class, 'saveCustomer'])->name('api.customer.save');
+    Route::post('/api/checkin', [CheckinController::class, 'saveCheckin'])->name('api.checkin.save');
+    Route::post('/api/order', [OrderController::class, 'saveOrder'])->name('api.order.save');
+    Route::get('/api/visits/today/{customer}', [CheckinController::class, 'todayVisit']);
+    Route::post('/api/checkin/{visit}/update', [CheckinController::class, 'updateCheckin']);
 
     // Tambahan untuk dropdown kota & kecamatan
-    Route::get('/api/wilayah/kota', [MarketerController::class, 'getKota'])->name('api.wilayah.kota');
-    Route::get('/api/wilayah/kecamatan', [MarketerController::class, 'getKecamatan'])->name('api.wilayah.kecamatan');
+    Route::get('/api/wilayah/kota', [WilayahController::class, 'getKota'])->name('api.wilayah.kota');
+    Route::get('/api/wilayah/kecamatan', [WilayahController::class, 'getKecamatan'])->name('api.wilayah.kecamatan');
 
-    Route::post('/customer/{customer}/foto', [MarketerController::class, 'updateCustomerPhoto'])
+    Route::post('/customer/{customer}/foto', [CustomerController::class, 'updateCustomerPhoto'])
         ->name('customer.updateFoto');
-
 });
