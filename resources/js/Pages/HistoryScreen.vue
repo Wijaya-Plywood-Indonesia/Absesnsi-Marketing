@@ -1,21 +1,23 @@
 <template>
-  <div class="appbar"><h1>Riwayat Kunjungan</h1></div>
-  <div class="scroll">
-    <div v-if="visitList.length" class="recent-list">
+  <div class="appbar flex-shrink-0 px-[18px] pt-[6px] pb-[16px] flex items-center gap-[10px]">
+    <h1 class="font-['Space_Grotesk'] text-[19px] font-semibold tracking-[-0.01em]">Riwayat Kunjungan</h1>
+  </div>
+  <div class="scroll flex-1 overflow-y-auto px-[18px] pb-[24px]">
+    <div v-if="visitList.length" class="flex flex-col">
       <div
         v-for="v in visitList"
         :key="v.id"
-        class="hist-row"
+        class="hist-row py-[12px] border-b border-[var(--border)] cursor-pointer last:border-b-0"
         @click="openDetail(v.custId)"
       >
-        <div class="hist-top">
-          <span class="hname">{{ getCustomerName(v.custId) }}</span>
-          <span class="hdate">{{ v.date }}, {{ v.time }}</span>
+        <div class="flex justify-between items-baseline">
+          <span class="font-semibold text-[14px]">{{ getCustomerName(v.custId) }}</span>
+          <span class="text-[11px] text-[var(--text-faint)] font-mono">{{ v.date }}, {{ v.time }}</span>
         </div>
-        <div class="hist-note">{{ v.hasil }} — {{ v.note }}</div>
+        <div class="text-[12.5px] text-[var(--text-muted)] mt-[3px]">{{ v.hasil }} — {{ v.note }}</div>
       </div>
     </div>
-    <div v-else class="empty-note">Belum ada riwayat kunjungan.</div>
+    <div v-else class="text-center text-[var(--text-faint)] text-[12.5px] py-[30px] px-[10px]">Belum ada riwayat kunjungan.</div>
   </div>
 </template>
 

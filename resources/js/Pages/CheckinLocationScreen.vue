@@ -1,37 +1,37 @@
 <template>
-    <div class="appbar">
-        <div class="back-btn" @click="nav('customerDetail')">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4">
+    <div class="appbar flex-shrink-0 px-[18px] pt-[6px] pb-[16px] flex items-center gap-[10px]">
+        <div class="w-[32px] h-[32px] rounded-[10px] bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center cursor-pointer flex-shrink-0" @click="nav('customerDetail')">
+            <svg class="w-4 h-4 stroke-[var(--text)]" viewBox="0 0 24 24" fill="none" stroke-width="2.4">
                 <path d="M15 18l-6-6 6-6" />
             </svg>
         </div>
-        <h1>Kunjungan</h1>
+        <h1 class="font-['Space_Grotesk'] text-[19px] font-semibold tracking-[-0.01em]">Kunjungan</h1>
     </div>
-    <div class="scroll">
-        <span class="eyebrow">Langkah 1 dari 2</span>
-        <div class="section-title mt-[2px]">Ambil Lokasi Kunjungan</div>
+    <div class="scroll flex-1 overflow-y-auto px-[18px] pb-[24px]">
+        <span class="font-mono text-[10.5px] tracking-[0.13em] uppercase text-[var(--accent)] mb-[4px] block">Langkah 1 dari 2</span>
+        <div class="font-['Space_Grotesk'] text-[15px] font-semibold mt-[22px] mb-[10px]">Ambil Lokasi Kunjungan</div>
 
         <div
             ref="mapEl"
-            class="map-box h-[220px] rounded-xl overflow-hidden"
+            class="h-[220px] rounded-xl border border-[var(--border)] relative overflow-hidden bg-[var(--surface)]"
             id="checkinMap"
         >
-            <div v-if="checkinLocating" class="locating">
-                <span class="spinner"></span> Mengunci sinyal GPS...
+            <div v-if="checkinLocating" class="flex items-center gap-[10px] p-[16px] text-[13.5px] text-[var(--text-muted)]">
+                <span class="w-[16px] h-[16px] rounded-full border-2 border-[var(--border)] border-t-[var(--accent)] animate-spin flex-shrink-0"></span> Mengunci sinyal GPS...
             </div>
         </div>
 
-        <div v-if="checkinError && !checkinCoord" class="card mt-3">
+        <div v-if="checkinError && !checkinCoord" class="card bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-[16px] mt-3">
             <div class="text-[13px] text-[var(--danger)] mb-2.5">
                 {{ checkinError }}
             </div>
-            <button class="btn btn-ghost" @click="startCheckinGeo">
+            <button class="btn btn-ghost bg-[var(--surface-2)] text-[var(--text)] font-sans font-semibold text-[14.5px] rounded-[12px] px-[18px] py-[14px] cursor-pointer flex items-center justify-center gap-[8px] w-full" @click="startCheckinGeo">
                 🔄 Coba Lagi
             </button>
         </div>
 
         <div v-if="checkinCoord" class="flex flex-col gap-3 mt-3">
-            <div class="card coord-card">
+            <div class="card bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-[16px]">
                 <div
                     class="flex flex-row items-start gap-2 text-[13px] font-semibold mb-2.5 pb-2.5 border-b border-[var(--border)]"
                 >
@@ -84,7 +84,7 @@
 
             <div
                 v-if="distanceToStore !== null"
-                class="card border-l-[3px]"
+                class="card bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-[16px] border-l-[3px]"
                 :class="
                     isWithinRadius
                         ? 'border-l-[#22c55e]'
@@ -104,7 +104,7 @@
                 </div>
             </div>
 
-            <button class="btn btn-primary" @click="handleLanjutkan">
+            <button class="btn btn-primary font-sans font-semibold text-[14.5px] rounded-[12px] border-none px-[18px] py-[14px] cursor-pointer flex items-center justify-center gap-[8px] w-full bg-[var(--accent)] text-[var(--accent-ink)] active:scale-[0.98] disabled:bg-[var(--border)] disabled:text-[var(--text-faint)] disabled:cursor-not-allowed" @click="handleLanjutkan">
                 Lanjutkan
             </button>
         </div>
@@ -115,7 +115,7 @@
             @click.self="showOutsideAreaModal = false"
         >
             <div
-                class="card !rounded-2xl !p-5 max-w-[340px] w-full text-center"
+                class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-[16px] !rounded-2xl !p-5 max-w-[340px] w-full text-center"
             >
                 <div class="text-[32px] mb-1.5">⚠️</div>
                 <div class="text-base font-bold mb-2">
@@ -133,13 +133,13 @@
                 </p>
                 <div class="flex flex-row gap-3">
                     <button
-                        class="btn btn-ghost flex-1 !py-2 !text-[13px]"
+                        class="btn btn-ghost bg-[var(--surface-2)] text-[var(--text)] font-sans font-semibold rounded-[12px] cursor-pointer flex items-center justify-center gap-[8px] flex-1 !py-2 !text-[13px]"
                         @click="showOutsideAreaModal = false"
                     >
                         Batal
                     </button>
                     <button
-                        class="btn btn-primary flex-1 !py-2 !text-[13px]"
+                        class="btn btn-primary font-sans font-semibold rounded-[12px] border-none cursor-pointer flex items-center justify-center gap-[8px] bg-[var(--accent)] text-[var(--accent-ink)] active:scale-[0.98] disabled:bg-[var(--border)] disabled:text-[var(--text-faint)] disabled:cursor-not-allowed flex-1 !py-2 !text-[13px]"
                         @click="confirmOutsideArea"
                     >
                         Tetap Lanjutkan

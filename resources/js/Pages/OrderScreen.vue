@@ -1,13 +1,16 @@
 <template>
-    <div class="appbar"><h1>Order</h1></div>
+    <div class="appbar flex-shrink-0 px-[18px] pt-[6px] pb-[16px] flex items-center gap-[10px]">
+        <h1 class="font-['Space_Grotesk'] text-[19px] font-semibold tracking-[-0.01em]">Order</h1>
+    </div>
 
-    <div class="scroll" style="position: relative">
-        <div class="search-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+    <div class="scroll flex-1 overflow-y-auto px-[18px] pb-[24px] relative">
+        <div class="search-box flex items-center gap-[8px] bg-[var(--surface-2)] border border-[var(--border)] rounded-[12px] px-[13px] py-[10px] mt-[14px] mb-[12px]">
+            <svg class="w-[16px] h-[16px] stroke-[var(--text-faint)] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m21 21-4.3-4.3" />
             </svg>
             <input
+                class="bg-transparent border-none outline-none text-[var(--text)] text-[14px] flex-1 font-sans"
                 v-model="search"
                 placeholder="Cari nomor order / nama toko..."
             />
@@ -17,29 +20,29 @@
             <div
                 v-for="o in filteredOrders"
                 :key="o.id"
-                class="cust-card order-card"
+                class="cust-card bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-[14px] mb-[10px] cursor-pointer"
                 @click="toggleExpand(o.id)"
             >
-                <div class="order-top">
-                    <span class="order-no">{{ o.order_no }}</span>
-                    <span class="order-date">{{
+                <div class="flex justify-between items-center mb-[6px]">
+                    <span class="font-mono font-bold text-[var(--accent)] text-[13px]">{{ o.order_no }}</span>
+                    <span class="text-[12px] text-[var(--text-muted)]">{{
                         formatDate(o.order_date || o.created_at)
                     }}</span>
                 </div>
-                <div class="order-row-2">
-                    <div class="cname">
+                <div class="flex items-center gap-[8px]">
+                    <div class="flex-1 font-['Space_Grotesk'] font-semibold text-[15px]">
                         {{
                             o.customer
                                 ? o.customer.name
                                 : getCustomerName(o.customer_id)
                         }}
                     </div>
-                    <span class="order-item-count"
+                    <span class="text-[11px] text-[var(--text-muted)] whitespace-nowrap"
                         >{{ o.items.length }} produk</span
-                    >
+                     >
                     <svg
-                        class="chevron"
-                        :class="{ open: expandedIds.has(o.id) }"
+                        class="w-[16px] h-[16px] text-[var(--text-muted)] stroke-current transition-transform duration-150 ease-in-out shrink-0"
+                        :class="expandedIds.has(o.id) ? 'rotate-180' : ''"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke-width="2.4"
@@ -49,31 +52,31 @@
                 </div>
 
                 <template v-if="expandedIds.has(o.id)">
-                    <div class="order-items">
+                    <div class="flex flex-wrap gap-[6px] mt-[8px]">
                         <span
                             v-for="(item, idx) in o.items"
                             :key="idx"
-                            class="item-pill"
+                            class="text-[11px] bg-[var(--surface-2)] border border-[var(--border)] rounded-full px-[10px] py-[3px] text-[var(--text-muted)]"
                         >
                             {{ item.name }} · {{ item.qty }} {{ item.unit }}
                         </span>
                     </div>
 
-                    <div v-if="o.catatan" class="order-note">
+                    <div v-if="o.catatan" class="mt-[8px] text-[12px] bg-[var(--surface-2)] px-[10px] py-[8px] rounded-[8px] border-l-[3px] border-[var(--accent)]">
                         {{ o.catatan }}
                     </div>
                 </template>
             </div>
         </div>
 
-        <div v-else class="empty-note">
+        <div v-else class="text-center text-[var(--text-faint)] text-[12.5px] py-[30px] px-[10px]">
             Belum ada order yang dibuat.<br />Tekan tombol + untuk buat order
             pertama.
         </div>
     </div>
 
-    <button class="fab" @click="nav('orderForm')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4">
+    <button class="fab absolute right-[18px] bottom-[96px] w-[52px] h-[52px] rounded-[16px] bg-[var(--accent)] text-[var(--accent-ink)] border-none flex items-center justify-center shadow-[0_10px_24px_-8px_rgba(242,169,59,0.5)] cursor-pointer z-40" @click="nav('orderForm')">
+        <svg class="w-[22px] h-[22px] stroke-[var(--accent-ink)]" viewBox="0 0 24 24" fill="none" stroke-width="2.4">
             <path d="M12 5v14M5 12h14" />
         </svg>
     </button>
@@ -149,71 +152,3 @@ function formatDate(dateStr) {
     return `${day} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 </script>
-
-<style scoped>
-.order-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-.order-no {
-    font-family: "IBM Plex Mono", monospace;
-    font-weight: 700;
-    color: var(--accent);
-    font-size: 13px;
-}
-.order-date {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-.order-card {
-    cursor: pointer;
-}
-.order-row-2 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.order-row-2 .cname {
-    flex: 1;
-}
-.order-item-count {
-    font-size: 11px;
-    color: var(--text-muted);
-    white-space: nowrap;
-}
-.chevron {
-    width: 16px;
-    height: 16px;
-    color: var(--text-muted);
-    stroke: currentColor;
-    transition: transform 0.15s ease;
-    flex-shrink: 0;
-}
-.chevron.open {
-    transform: rotate(180deg);
-}
-.order-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
-}
-.item-pill {
-    font-size: 11px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 3px 10px;
-    color: var(--text-muted);
-}
-.order-note {
-    margin-top: 8px;
-    font-size: 12px;
-    background: var(--surface-2);
-    padding: 8px 10px;
-    border-radius: 8px;
-    border-left: 3px solid var(--accent);
-}
-</style>

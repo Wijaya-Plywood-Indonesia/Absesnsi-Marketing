@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+@vite(['resources/css/app.css', 'resources/js/app.js'])
 <style>
   :root{
     --bg-outer:#0b0a08;
@@ -324,7 +325,5 @@
     csrf-token="{{ csrf_token() }}">
   </app-component>
 </div>
-
-@vite(['resources/css/app.css', 'resources/js/app.js'])
 </body>
 </html>

@@ -11,14 +11,14 @@
             <input type="hidden" name="_token" :value="csrfToken" />
         </form>
 
-        <div class="app-header"></div>
-        <div class="brand-bar" v-if="shouldShowBrandBar">
-            <div class="brand-logo">
-                <span class="logo-dot"></span>
+        <div class="app-header h-[6px] flex-shrink-0"></div>
+        <div class="brand-bar flex items-center justify-between px-[18px] py-[14px] border-b border-[var(--border)] bg-[var(--bg-app)] flex-shrink-0" v-if="shouldShowBrandBar">
+            <div class="brand-logo font-['Space_Grotesk'] font-bold text-[15px] tracking-[0.05em] text-[var(--text)] flex items-center gap-[8px]">
+                <span class="logo-dot w-[8px] h-[8px] bg-[var(--accent)] rounded-full shadow-[0_0_10px_var(--accent)]"></span>
                 WIJAYA PLYWOOD
             </div>
-            <div class="brand-actions">
-                <div class="mini-avatar" @click="nav('profile')">
+            <div class="brand-actions flex items-center gap-[12px]">
+                <div class="mini-avatar w-[32px] h-[32px] rounded-full bg-[var(--accent-soft)] border border-[var(--accent)] text-[var(--accent)] font-['Space_Grotesk'] text-[12px] font-bold flex items-center justify-center cursor-pointer active:scale-95 transition-transform" @click="nav('profile')">
                     {{ getInitials(user.name) }}
                 </div>
             </div>
