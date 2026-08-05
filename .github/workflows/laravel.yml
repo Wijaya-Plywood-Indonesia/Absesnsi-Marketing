@@ -1,4 +1,4 @@
-name: Telur CI/CD
+name: Marketing CI/CD
 
 on:
   push:
@@ -96,7 +96,7 @@ jobs:
           echo "✅ Semua migration sudah berjalan."
 
   deploy-production:
-    name: Deploy to telur.wijayaplywoods.com
+    name: Deploy to marketing.wijayaplywoods.com
     needs: laravel-tests
     # HANYA jalan jika kamu membuat TAG (misal v1.0)
     if: startsWith(github.ref, 'refs/tags/v')
@@ -155,7 +155,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             # Tentukan folder target
-            TARGET_DIR="/home/${{ secrets.SSH_USERNAME }}/telur.wijayaplywoods.com"
+            TARGET_DIR="/home/${{ secrets.SSH_USERNAME }}/marketing.wijayaplywoods.com"
             cd $TARGET_DIR
             
             # 1. Mode Perbaikan
@@ -181,4 +181,4 @@ jobs:
             
             # Hapus sisa file ZIP
             rm ../deploy.zip
-            echo "🚀 Deployment Akuntansi Sukses!"
+            echo "🚀 Deployment Marketing Sukses!"
