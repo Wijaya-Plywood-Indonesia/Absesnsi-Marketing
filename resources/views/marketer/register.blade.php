@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Marketer — Wijaya Plywood</title>
+    <title>Daftar Marketer — Wijaya Plywood</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
@@ -120,6 +120,13 @@
             border-color: var(--accent);
         }
 
+        .field small {
+            display: block;
+            margin-top: 6px;
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+
         .btn {
             font-family: 'Inter', sans-serif;
             font-weight: 600;
@@ -151,6 +158,23 @@
             font-size: 13.5px;
             margin-bottom: 20px;
         }
+
+        .error-box ul {
+            list-style: none;
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .footer-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -159,18 +183,28 @@
     <div class="login-card">
         <div class="logo-area">
             <span class="badge">Sales Motoris</span>
-            <h1>Wijaya Plywood</h1>
-            <p>Silakan masuk menggunakan akun Anda</p>
+            <h1>Daftar Akun</h1>
+            <p>Akun Anda akan diverifikasi admin sebelum bisa digunakan</p>
         </div>
 
         @if ($errors->any())
             <div class="error-box">
-                {{ $errors->first() }}
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 
-        <form action="{{ route('login') }}" method="POST">
+        <form action="{{ route('register') }}" method="POST">
             @csrf
+            <div class="field">
+                <label for="name">Nama Lengkap</label>
+                <input type="text" id="name" name="name" value="{{ old('name') }}" required
+                    placeholder="Nama Anda">
+            </div>
+
             <div class="field">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" value="{{ old('email') }}" required
@@ -180,13 +214,20 @@
             <div class="field">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required placeholder="••••••••">
+                <small>Minimal 8 karakter</small>
             </div>
 
-            <button type="submit" class="btn">Masuk Ke Aplikasi</button>
+            <div class="field">
+                <label for="password_confirmation">Konfirmasi Password</label>
+                <input type="password" id="password_confirmation" name="password_confirmation" required
+                    placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn">Daftar</button>
         </form>
-        <div class="footer-link" style="text-align:center; margin-top:20px; font-size:13px; color: var(--text-muted);">
-            Belum punya akun? <a href="{{ route('register') }}"
-                style="color: var(--accent); text-decoration:none; font-weight:600;">Daftar</a>
+
+        <div class="footer-link">
+            Sudah punya akun? <a href="{{ route('login') }}">Masuk di sini</a>
         </div>
     </div>
 
