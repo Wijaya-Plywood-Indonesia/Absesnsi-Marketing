@@ -124,7 +124,7 @@ class CustomersTable
                     ->relationship('user', 'name')
                     ->options(fn () => User::where('role', 'marketing')->pluck('name', 'id')),
             ])
-            ->defaultSort('name')
+            ->defaultSort('created_at', 'desc')
             ->recordUrl(
                 fn ($record) => CustomerResource::getUrl('view', ['record' => $record]),
             )

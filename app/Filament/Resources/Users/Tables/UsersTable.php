@@ -18,6 +18,15 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort(function ($query) {
+                return $query->orderByRaw('
+                    CASE
+                        WHEN validated_at IS NULL THEN 0
+                        WHEN validated_at > NOW() THEN 2
+                        ELSE 1
+                    END
+                ')->orderByDesc('created_at');
+            })
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
@@ -39,7 +48,7 @@ class UsersTable
                             return 'Dibanned s/d '.$record->validated_at->translatedFormat('d M Y, H:i');
                         }
 
-                        return 'Aktif';
+                        return 'Aktif sejak '.$record->validated_at?->translatedFormat('d M Y, H:i');
                     })
                     ->badge()
                     ->color(function (User $record) {

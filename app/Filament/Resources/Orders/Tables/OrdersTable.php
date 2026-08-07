@@ -14,6 +14,7 @@ class OrdersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('order_no')
                     ->label('Order Number')
@@ -34,7 +35,7 @@ class OrdersTable
                 TextColumn::make('order_items_count')
                     ->label('Items Count')
                     ->counts('orderItems')
-                    ->state(fn ($record) => $record->order_items_count . ' items'),
+                    ->state(fn ($record) => $record->order_items_count.' items'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
