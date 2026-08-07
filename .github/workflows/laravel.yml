@@ -3,9 +3,8 @@ name: Marketing CI/CD
 on:
   push:
     branches: ["main", "develop"]
-  create:
-    tags: ["v*"]
-    
+    tags: ["*"]
+
 jobs:
   # ──────────────────────────────────────────────
   # JOB 1: TESTING (CI)
@@ -95,16 +94,20 @@ jobs:
           fi
           echo "✅ Semua migration sudah berjalan."
 
+  # ──────────────────────────────────────────────
+  # JOB 2: DEPLOY (CD) — hanya jalan saat push tag vX.X.X
+  # ──────────────────────────────────────────────
   deploy-production:
     name: Deploy to marketing.wijayaplywoods.com
     needs: laravel-tests
-    # HANYA jalan jika kamu membuat TAG (misal v1.0)
-    if: startsWith(github.ref, 'refs/tags/v')
+    # HANYA jalan jika trigger-nya berupa TAG (apapun namanya), bukan push ke branch
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     environment: production
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup PHP & Node
         uses: shivammathur/setup-php@v2
         with:
@@ -123,7 +126,7 @@ jobs:
           set -euo pipefail
           BUILD_DIR=./build_deploy
           mkdir -p "$BUILD_DIR"
-          
+
           # rsync memilah file, abaikan storage dan .env agar data aman
           rsync -a --delete \
             --exclude '.git/' \
@@ -133,7 +136,7 @@ jobs:
             --exclude '.env' \
             --exclude 'storage/' \
             ./ "$BUILD_DIR/"
-            
+
           (cd "$BUILD_DIR" && zip -r ../deploy.zip . -q)
 
       - name: Upload to Server
@@ -157,28 +160,28 @@ jobs:
             # Tentukan folder target
             TARGET_DIR="/home/${{ secrets.SSH_USERNAME }}/marketing.wijayaplywoods.com"
             cd $TARGET_DIR
-            
+
             # 1. Mode Perbaikan
             php artisan down || true
-            
+
             # 2. Hapus file lama KECUALI storage dan .env
             find . -mindepth 1 -maxdepth 1 ! -name 'storage' ! -name '.env' -exec rm -rf {} \;
-            
+
             # 3. Ekstrak file baru
             unzip -oq ../deploy.zip -d .
-            
+
             # 4. Optimasi Laravel
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-            
+
             # 5. Migrasi Database (Aman, hanya menambah yang baru)
             php artisan migrate --force
-            
+
             # 6. Online Kembali
             php artisan up
-            
+
             # Hapus sisa file ZIP
             rm ../deploy.zip
             echo "🚀 Deployment Marketing Sukses!"
