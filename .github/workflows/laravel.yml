@@ -128,11 +128,13 @@ jobs:
           mkdir -p "$BUILD_DIR"
 
           # rsync memilah file, abaikan storage dan .env agar data aman
+          # .htaccess (kalau ada di repo) TETAP ikut, karena rsync -a menyertakan dotfile
           rsync -a --delete \
             --exclude '.git/' \
             --exclude '.github/' \
             --exclude 'node_modules/' \
             --exclude 'tests/' \
+            --exclude '.htaccess' \
             --exclude '.env' \
             --exclude 'storage/' \
             ./ "$BUILD_DIR/"
@@ -164,24 +166,34 @@ jobs:
             # 1. Mode Perbaikan
             php artisan down || true
 
-            # 2. Hapus file lama KECUALI storage dan .env
-            find . -mindepth 1 -maxdepth 1 ! -name 'storage' ! -name '.env' -exec rm -rf {} \;
+            # 2. Extract paket baru ke folder sementara (tidak langsung hapus file lama)
+            rm -rf /tmp/deploy_extract
+            mkdir -p /tmp/deploy_extract
+            unzip -oq ../deploy.zip -d /tmp/deploy_extract
 
-            # 3. Ekstrak file baru
-            unzip -oq ../deploy.zip -d .
+            # 3. Sinkronkan ke target, KECUALI storage, .env, dan .htaccess
+            #    (.htaccess dikecualikan karena di shared hosting biasanya
+            #     dikonfigurasi manual di server, bukan berasal dari repo)
+            rsync -a --delete \
+              --exclude 'storage/' \
+              --exclude '.env' \
+              --exclude '.htaccess' \
+              /tmp/deploy_extract/ "$TARGET_DIR/"
 
-            # 4. Optimasi Laravel
+            # 4. Bersihkan file sementara
+            rm -rf /tmp/deploy_extract
+            rm -f ../deploy.zip
+
+            # 5. Optimasi Laravel
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
 
-            # 5. Migrasi Database (Aman, hanya menambah yang baru)
+            # 6. Migrasi Database (Aman, hanya menambah yang baru)
             php artisan migrate --force
 
-            # 6. Online Kembali
+            # 7. Online Kembali
             php artisan up
 
-            # Hapus sisa file ZIP
-            rm ../deploy.zip
             echo "🚀 Deployment Marketing Sukses!"
