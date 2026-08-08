@@ -2,9 +2,10 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-
+use App\Http\Responses\LogoutResponse;
+use Filament\Auth\Http\Responses\Contracts\LogoutResponse as LogoutResponseContract;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(LogoutResponseContract::class, LogoutResponse::class);
     }
 
     /**
@@ -21,8 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (str_contains(request()->header('host', ''), 'ngrok') || 
-            request()->header('X-Forwarded-Proto') === 'https' || 
+        if (str_contains(request()->header('host', ''), 'ngrok') ||
+            request()->header('X-Forwarded-Proto') === 'https' ||
             request()->server('HTTP_X_FORWARDED_PROTO') === 'https') {
             URL::forceScheme('https');
         }
