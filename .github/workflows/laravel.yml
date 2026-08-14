@@ -2,13 +2,14 @@ name: Marketing CI/CD
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: ["main", "master", "develop"]
     tags: ["*"]
 
 jobs:
-  # ──────────────────────────────────────────────
+  # ══════════════════════════════════════════════════════════
   # JOB 1: TESTING (CI)
-  # ──────────────────────────────────────────────
+  # Jalan di SETIAP push ke main/master/develop, dan di setiap tag.
+  # ══════════════════════════════════════════════════════════
   laravel-tests:
     name: 🧪 Run Tests (CI)
     runs-on: ubuntu-latest
@@ -61,10 +62,24 @@ jobs:
       - name: 🔧 Install Composer dependencies
         run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
-      - name: 🏗️ Build Frontend Assets (Vite Manifest Fix)
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: 🏗️ Build Frontend Assets
         run: |
           npm ci
           npm run build
+
+      - name: ✅ Verify Vite manifest was actually generated
+        run: |
+          if [ ! -f public/build/manifest.json ]; then
+            echo "❌ public/build/manifest.json tidak ditemukan setelah npm run build!"
+            exit 1
+          fi
+          echo "✅ Vite manifest ditemukan."
 
       - name: 🔑 Generate App Key
         run: php artisan key:generate
@@ -99,21 +114,29 @@ jobs:
           fi
           echo "✅ Semua migration sudah berjalan."
 
-  # ──────────────────────────────────────────────
-  # JOB 2: DEPLOY (CD) — hanya jalan saat push tag vX.X.X
-  # ──────────────────────────────────────────────
+      - name: ✅ Verify all Filament Pages are discoverable
+        run: |
+          echo "Mengecek apakah semua class di app/Filament/Pages berhasil di-load tanpa error..."
+          php artisan route:list --path=admin > /dev/null
+          echo "✅ Routing admin panel berhasil di-build tanpa fatal error."
+
+  # ══════════════════════════════════════════════════════════
+  # JOB 2: DEPLOY (CD)
+  # HANYA jalan kalau trigger-nya adalah TAG (misal v1.1.4), bukan push biasa.
+  # HANYA jalan kalau job testing di atas lolos semua.
+  # ══════════════════════════════════════════════════════════
   deploy-production:
-    name: Deploy to marketing.wijayaplywoods.com
+    name: 🚀 Deploy to marketing.wijayaplywoods.com
     needs: laravel-tests
-    # HANYA jalan jika trigger-nya berupa TAG (apapun namanya), bukan push ke branch
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     environment: production
 
     steps:
-      - uses: actions/checkout@v4
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Setup PHP & Node
+      - name: 🐘 Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
@@ -122,23 +145,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          
-      - name: Build Frontend
+          cache: "npm"
+
+      - name: 🏗️ Build Frontend Assets
         run: |
           npm ci
           npm run build
 
-      - name: Install Composer Prod
-        run: composer install --no-dev --optimize-autoloader --no-interaction
+      - name: ✅ Verify Vite manifest was actually generated
+        run: |
+          if [ ! -f public/build/manifest.json ]; then
+            echo "❌ public/build/manifest.json tidak ditemukan setelah npm run build!"
+            exit 1
+          fi
+          echo "✅ Vite manifest ditemukan, aman untuk di-deploy."
 
-      - name: Create Deployment Package
+      - name: 📦 Install Composer dependencies (production)
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: 🗜️ Create Deployment Package
         run: |
           set -euo pipefail
           BUILD_DIR=./build_deploy
           mkdir -p "$BUILD_DIR"
 
-          # rsync memilah file, abaikan storage dan .env agar data aman
-          # .htaccess (kalau ada di repo) TETAP ikut, karena rsync -a menyertakan dotfile
+          # rsync memilah file yang dipaket. .env, storage, dan .htaccess
+          # SENGAJA tidak diikutkan karena itu milik server (data & config
+          # production yang tidak boleh ketimpa oleh isi repo).
           rsync -a --delete \
             --exclude '.git/' \
             --exclude '.github/' \
@@ -149,9 +182,17 @@ jobs:
             --exclude 'storage/' \
             ./ "$BUILD_DIR/"
 
-          (cd "$BUILD_DIR" && zip -r ../deploy.zip . -q)
+          # Sanity check: pastikan folder-folder penting benar-benar
+          # ikut terpaket sebelum dikirim ke server.
+          echo "── Isi app/Filament yang akan di-deploy: ──"
+          find "$BUILD_DIR/app/Filament" -maxdepth 2 -type d
+          echo "── Vite manifest yang akan di-deploy: ──"
+          ls -la "$BUILD_DIR/public/build/manifest.json"
 
-      - name: Upload to Server
+          (cd "$BUILD_DIR" && zip -r ../deploy.zip . -q)
+          echo "✅ Ukuran paket deploy: $(du -h deploy.zip | cut -f1)"
+
+      - name: 📤 Upload to Server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -161,7 +202,7 @@ jobs:
           source: "deploy.zip"
           target: "/home/${{ secrets.SSH_USERNAME }}"
 
-      - name: Execute Server Commands
+      - name: ⚙️ Execute Server Commands
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -169,41 +210,61 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Tentukan folder target
+            set -euo pipefail
             TARGET_DIR="/home/${{ secrets.SSH_USERNAME }}/marketing.wijayaplywoods.com"
-            cd $TARGET_DIR
+            cd "$TARGET_DIR"
 
-            # 1. Mode Perbaikan
+            echo "── 1. Mode Perbaikan ──"
             php artisan down || true
 
-            # 2. Extract paket baru ke folder sementara (tidak langsung hapus file lama)
+            echo "── 2. Extract paket baru ke folder sementara ──"
             rm -rf /tmp/deploy_extract
             mkdir -p /tmp/deploy_extract
             unzip -oq ../deploy.zip -d /tmp/deploy_extract
 
-            # 3. Sinkronkan ke target, KECUALI storage, .env, dan .htaccess
-            #    (.htaccess dikecualikan karena di shared hosting biasanya
-            #     dikonfigurasi manual di server, bukan berasal dari repo)
+            echo "── 3. Sanity check sebelum sync: pastikan folder Pages ada di paket ──"
+            if [ ! -d /tmp/deploy_extract/app/Filament/Pages ]; then
+              echo "❌ app/Filament/Pages TIDAK ADA di paket deploy! Membatalkan deploy."
+              php artisan up || true
+              exit 1
+            fi
+            if [ ! -f /tmp/deploy_extract/public/build/manifest.json ]; then
+              echo "❌ Vite manifest TIDAK ADA di paket deploy! Membatalkan deploy."
+              php artisan up || true
+              exit 1
+            fi
+
+            echo "── 4. Sinkronkan ke target, KECUALI storage, .env, .htaccess ──"
             rsync -a --delete \
               --exclude 'storage/' \
               --exclude '.env' \
               --exclude '.htaccess' \
               /tmp/deploy_extract/ "$TARGET_DIR/"
 
-            # 4. Bersihkan file sementara
+            echo "── 5. Bersihkan file sementara ──"
             rm -rf /tmp/deploy_extract
             rm -f ../deploy.zip
 
-            # 5. Optimasi Laravel
+            echo "── 6. Set permission storage & cache ──"
+            chmod -R 775 storage bootstrap/cache
+
+            echo "── 7. Bersihkan SEMUA cache lama (config, route, view, event, filament) ──"
             php artisan optimize:clear
+            php artisan filament:clear-cached-components || true
+
+            echo "── 8. Migrasi Database (aman, hanya menambah yang baru) ──"
+            php artisan migrate --force
+
+            echo "── 9. Build ulang cache production ──"
+            php artisan filament:cache-components
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
 
-            # 6. Migrasi Database (Aman, hanya menambah yang baru)
-            php artisan migrate --force
+            echo "── 10. Verifikasi Page Filament ter-registrasi ──"
+            php artisan route:list --path=admin | grep -i "rekap" || echo "⚠️ Peringatan: route 'rekap' tidak ditemukan, cek manual!"
 
-            # 7. Online Kembali
+            echo "── 11. Online kembali ──"
             php artisan up
 
             echo "🚀 Deployment Marketing Sukses!"
