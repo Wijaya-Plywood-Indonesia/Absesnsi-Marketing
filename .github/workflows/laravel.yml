@@ -61,6 +61,11 @@ jobs:
       - name: 🔧 Install Composer dependencies
         run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
+      - name: 🏗️ Build Frontend Assets (Vite Manifest Fix)
+        run: |
+          npm ci
+          npm run build
+
       - name: 🔑 Generate App Key
         run: php artisan key:generate
 
@@ -112,14 +117,14 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-
-      - name: Install Composer Prod
-        run: composer install --no-dev --optimize-autoloader --no-interaction
-
+          
       - name: Build Frontend
         run: |
           npm ci
           npm run build
+
+      - name: Install Composer Prod
+        run: composer install --no-dev --optimize-autoloader --no-interaction
 
       - name: Create Deployment Package
         run: |
