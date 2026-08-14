@@ -169,8 +169,10 @@ jobs:
           BUILD_DIR=./build_deploy
           mkdir -p "$BUILD_DIR"
 
-          # rsync memilah file yang dipaket. .env, storage, dan .htaccess
-          # SENGAJA tidak diikutkan karena itu milik server (data & config
+          # rsync di sini jalan di runner GitHub Actions (ubuntu-latest),
+          # BUKAN di shared hosting, jadi aman dipakai. Ini cuma memilah
+          # file yang mau dipaket. .env, storage, dan .htaccess SENGAJA
+          # tidak diikutkan karena itu milik server (data & config
           # production yang tidak boleh ketimpa oleh isi repo).
           rsync -a --delete \
             --exclude '.git/' \
@@ -234,12 +236,21 @@ jobs:
               exit 1
             fi
 
-            echo "── 4. Sinkronkan ke target, KECUALI storage, .env, .htaccess ──"
-            rsync -a --delete \
-              --exclude 'storage/' \
-              --exclude '.env' \
-              --exclude '.htaccess' \
-              /tmp/deploy_extract/ "$TARGET_DIR/"
+            echo "── 4. Sinkronkan ke target, KECUALI storage, .env, .htaccess (tanpa rsync) ──"
+            # Shared hosting umumnya TIDAK punya rsync, jadi pakai cp biasa.
+            # Hapus dulu dari paket sumber supaya tidak ikut menimpa file
+            # milik server (storage berisi upload user, .env & .htaccess
+            # adalah config production).
+            rm -rf /tmp/deploy_extract/storage
+            rm -f  /tmp/deploy_extract/.env
+            rm -f  /tmp/deploy_extract/.htaccess
+
+            # Salin semua isi paket ke TARGET_DIR, timpa file yang sama.
+            # Catatan: cp TIDAK menghapus file lama di server yang sudah
+            # tidak ada lagi di repo (beda dengan rsync --delete). Kalau
+            # ada file/folder yang sengaja dihapus dari repo, hapus manual
+            # di server atau tambahkan langkah cleanup terpisah.
+            cp -a /tmp/deploy_extract/. "$TARGET_DIR/"
 
             echo "── 5. Bersihkan file sementara ──"
             rm -rf /tmp/deploy_extract
