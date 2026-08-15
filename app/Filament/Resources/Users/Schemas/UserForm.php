@@ -26,6 +26,7 @@ class UserForm
                 Select::make('role')
                     ->options([
                         'admin' => 'Admin',
+                        'visitor' => 'Visitor (Atasan)',
                         'marketing' => 'Marketing',
                     ])
                     ->required()

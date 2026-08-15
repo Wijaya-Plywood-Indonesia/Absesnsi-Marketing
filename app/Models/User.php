@@ -10,13 +10,15 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'role', 'daily_target', 'toko_id', 'validated_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
 
     protected function casts(): array
     {
@@ -27,9 +29,38 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
+    /**
+     * Sinkronkan otomatis kolom `role` (string) ke Spatie role setiap kali
+     * user disimpan. Dengan ini, kolom `role` tetap jadi sumber kebenaran
+     * utama (dipakai di canAccessPanel, canLogin, dst), sementara Filament
+     * Shield tetap bisa memeriksa permission lewat sistem Spatie di belakang layar.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (User $user) {
+            if ($user->wasChanged('role') || $user->wasRecentlyCreated) {
+                $role = Role::firstOrCreate([
+                    'name' => $user->role,
+                    'guard_name' => 'web',
+                ]);
+
+                $user->syncRoles([$role]);
+            }
+        });
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->role === 'admin';
+        return in_array($this->role, ['admin', 'visitor'], true);
+    }
+
+    /**
+     * Cek apakah user adalah visitor (atasan) — akses Filament, biasanya
+     * read-only sesuai permission yang diatur lewat Filament Shield.
+     */
+    public function isVisitor(): bool
+    {
+        return $this->role === 'visitor';
     }
 
     /**

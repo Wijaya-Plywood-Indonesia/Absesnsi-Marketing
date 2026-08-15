@@ -95,8 +95,8 @@ class AuthController extends Controller
 
     private function redirectByRole()
     {
-        if (auth()->user()->role === 'admin') {
-            return redirect('/admin');
+        if (in_array(auth()->user()->role, ['admin', 'visitor'], true)) {
+            return redirect('/admin/rekap-harian-visit');
         }
 
         return redirect()->intended(route('dashboard'));
