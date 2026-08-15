@@ -95,9 +95,9 @@
 
                                     {{-- Tab: Daftar Kunjungan Customer --}}
                                     <div x-show="tab === 'visits'" x-cloak>
-                                        <div class="overflow-x-auto rounded-lg border">
-                                            <table class="w-full bg-white text-sm text-left dark:bg-gray-900">
-                                                <thead class="bg-gray-100 dark:bg-white/5">
+                                        <div class="overflow-x-auto">
+                                            <table class="w-full text-sm text-left">
+                                                <thead class="bg-gray-50 dark:bg-white/5">
                                                     <tr>
                                                         <th class="px-3 py-2">Nama Customer</th>
                                                         <th class="px-3 py-2 text-center">Jam Kunjungan</th>
@@ -158,9 +158,9 @@
 
                                     {{-- Tab: Penambahan Customer Baru --}}
                                     <div x-show="tab === 'customers'" x-cloak>
-                                        <div class="overflow-x-auto rounded-lg border">
-                                            <table class="w-full bg-white text-sm text-left dark:bg-gray-900">
-                                                <thead class="bg-gray-100 dark:bg-white/5">
+                                        <div class="overflow-x-auto">
+                                            <table class="w-full text-sm text-left">
+                                                <thead class="bg-gray-50 dark:bg-white/5">
                                                     <tr>
                                                         <th class="px-3 py-2">Nama Customer</th>
                                                         <th class="px-3 py-2">Telepon</th>
