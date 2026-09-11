@@ -56,9 +56,10 @@ class CheckinController extends Controller
         }
 
         $fotoPath = null;
-        if ($request->hasFile('foto')) {
+        $fotoFileOrPath = $request->hasFile('foto') ? $request->file('foto') : $request->input('foto_temp_path');
+        if ($fotoFileOrPath) {
             $fotoPath = $watermarkService->processCheckinPhoto(
-                file: $request->file('foto'),
+                file: $fotoFileOrPath,
                 watermarkLines: [
                     $customer->name,
                     now()->format('d M Y, H:i').' WIB',
@@ -66,6 +67,11 @@ class CheckinController extends Controller
                         ?: 'Lat: '.number_format((float) $request->latitude, 6).', Lng: '.number_format((float) $request->longitude, 6),
                 ],
             );
+            
+            // Hapus file temp jika menggunakan temp path
+            if (is_string($fotoFileOrPath) && \Illuminate\Support\Facades\Storage::disk('public')->exists($fotoFileOrPath)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($fotoFileOrPath);
+            }
         }
 
         $visit = Visit::create([
@@ -133,9 +139,10 @@ class CheckinController extends Controller
             'catatan' => $request->catatan ?: 'Tanpa catatan tambahan.',
         ];
 
-        if ($request->hasFile('foto')) {
+        $fotoFileOrPath = $request->hasFile('foto') ? $request->file('foto') : $request->input('foto_temp_path');
+        if ($fotoFileOrPath) {
             $data['foto'] = $watermarkService->processCheckinPhoto(
-                file: $request->file('foto'),
+                file: $fotoFileOrPath,
                 watermarkLines: [
                     $visit->customer->name,
                     now()->format('d M Y, H:i').' WIB',
@@ -143,6 +150,10 @@ class CheckinController extends Controller
                         ?: 'Lat: '.number_format((float) $visit->latitude, 6).', Lng: '.number_format((float) $visit->longitude, 6),
                 ],
             );
+            
+            if (is_string($fotoFileOrPath) && \Illuminate\Support\Facades\Storage::disk('public')->exists($fotoFileOrPath)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($fotoFileOrPath);
+            }
         }
 
         $visit->update($data);

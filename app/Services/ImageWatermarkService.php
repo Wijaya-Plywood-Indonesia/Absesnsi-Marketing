@@ -17,14 +17,15 @@ class ImageWatermarkService
     }
 
     public function processCheckinPhoto(
-        UploadedFile $file,
+        $file,
         array $watermarkLines,
         string $folder = 'visits',
         int $targetWidth = 800,
         int $maxSizeKB = 150
     ): string {
         // 1. Decode foto asli
-        $image = $this->manager->decode(file_get_contents($file->getRealPath()));
+        $realPath = $file instanceof UploadedFile ? $file->getRealPath() : storage_path('app/public/'.$file);
+        $image = $this->manager->decode(file_get_contents($realPath));
 
         // 2. Resize ke lebar TETAP, supaya semua foto konsisten ukurannya
         $image->scale(width: $targetWidth);

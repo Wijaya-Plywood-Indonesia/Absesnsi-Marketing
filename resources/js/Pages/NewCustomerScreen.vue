@@ -67,11 +67,16 @@
                     v-if="ncFotoPreview"
                     class="foto-preview-wrap flex flex-col gap-2 items-center"
                 >
-                    <img
-                        :src="ncFotoPreview"
-                        class="foto-preview w-full max-h-[220px] object-cover rounded-[12px]"
-                        alt="Preview foto toko"
-                    />
+                    <div class="relative inline-block w-full">
+                        <img
+                            :src="ncFotoPreview"
+                            class="foto-preview w-full max-h-[220px] object-cover rounded-[12px]"
+                            alt="Preview foto toko"
+                        />
+                        <div v-if="isUploadingFoto" class="absolute inset-0 bg-black/50 flex items-center justify-center rounded-[12px]">
+                            <span class="text-white font-bold text-lg">{{ ncUploadProgress }}%</span>
+                        </div>
+                    </div>
 
                     <button
                         type="button"
@@ -331,17 +336,19 @@
 
         <button
             class="btn btn-primary font-sans font-semibold text-[14.5px] rounded-[12px] border-none px-[18px] py-[14px] cursor-pointer flex items-center justify-center gap-[8px] w-full bg-[var(--accent)] text-[var(--accent-ink)] active:scale-[0.98] disabled:bg-[var(--border)] disabled:text-[var(--text-faint)] disabled:cursor-not-allowed"
-            :disabled="submitting || !ncCoord || !ncKota || !ncKecamatan"
+            :disabled="submitting || isUploadingFoto || !ncCoord || !ncKota || !ncKecamatan"
             @click="onSubmit"
         >
             {{
                 submitting
                     ? "Menyimpan..."
-                    : !ncCoord
-                      ? "Ambil Lokasi Dahulu"
-                      : !ncKota || !ncKecamatan
-                        ? "Lengkapi Kota & Kecamatan"
-                        : "Simpan Customer"
+                    : isUploadingFoto
+                      ? "Mengunggah Foto..."
+                      : !ncCoord
+                        ? "Ambil Lokasi Dahulu"
+                        : !ncKota || !ncKecamatan
+                          ? "Lengkapi Kota & Kecamatan"
+                          : "Simpan Customer"
             }}
         </button>
     </div>
@@ -367,8 +374,11 @@ const {
     ncJenis,
     ncJenisLain,
     submitting,
+    isUploadingFoto,
+    ncUploadProgress,
     locateNewCustomer,
     saveCustomer,
+    uploadTempFoto,
 } = useNewCustomerForm();
 
 const { nav } = useAppNav();
@@ -458,6 +468,9 @@ function onFotoChange(e) {
     }
 
     ncFotoPreview.value = URL.createObjectURL(file);
+    
+    // Upload temp
+    uploadTempFoto(file);
 }
 
 function clearFoto() {
@@ -467,6 +480,7 @@ function clearFoto() {
 
     ncFoto.value = null;
     ncFotoPreview.value = "";
+    uploadTempFoto(null);
 }
 
 /* =========================================================
@@ -474,7 +488,7 @@ function clearFoto() {
    ========================================================= */
 
 async function onSubmit() {
-    await saveCustomer(ncFoto.value);
+    await saveCustomer(); // Tidak perlu passing file lagi, karena pake temp path
 
     clearFoto();
 }

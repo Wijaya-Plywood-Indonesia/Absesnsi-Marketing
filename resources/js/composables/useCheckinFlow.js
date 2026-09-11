@@ -1,4 +1,6 @@
 import { ref, computed, watch } from "vue";
+import Uppy from '@uppy/core';
+import XHRUpload from '@uppy/xhr-upload';
 import { useGeolocation } from "@vueuse/core";
 import { useRouter } from "vue-router";
 import { useAuth } from "./useAuth";
@@ -21,6 +23,10 @@ const existingVisitId = ref(null);
 const existingPhotoUrl = ref(null);
 const submitting = ref(false);
 
+const checkinPhotoTempPath = ref(null);
+const isUploadingPhoto = ref(false);
+const checkinUploadProgress = ref(0);
+
 // Singleton geolocation watch — instance dibuat sekali di module scope,
 // bukan tiap kali useCheckinFlow() dipanggil dari komponen berbeda.
 const {
@@ -41,6 +47,49 @@ export function useCheckinFlow() {
     const { addVisit, updateVisit } = useVisits();
 
     const isEditMode = computed(() => existingVisitId.value !== null);
+
+    watch(checkinPhoto, async (file) => {
+        if (!file) {
+            checkinPhotoTempPath.value = null;
+            checkinUploadProgress.value = 0;
+            return;
+        }
+
+        isUploadingPhoto.value = true;
+        checkinUploadProgress.value = 0;
+        
+        const uppy = new Uppy({ autoProceed: false })
+            .use(XHRUpload, {
+                endpoint: "/api/upload-temp",
+                fieldName: "foto",
+                headers: { "X-CSRF-TOKEN": csrfToken.value },
+            });
+
+        uppy.on('progress', (progress) => {
+            checkinUploadProgress.value = progress;
+        });
+
+        uppy.addFile({
+            name: file.name,
+            type: file.type,
+            data: file,
+        });
+
+        try {
+            const result = await uppy.upload();
+            if (result.successful.length > 0) {
+                checkinPhotoTempPath.value = result.successful[0].response.body.path;
+            } else {
+                checkinPhoto.value = null;
+                alert("Upload gambar gagal, periksa internet Anda.");
+            }
+        } catch (e) {
+            checkinPhoto.value = null;
+            alert("Upload gambar gagal: " + e.message);
+        } finally {
+            isUploadingPhoto.value = false;
+        }
+    });
 
     // Dipanggil saat masuk step 1 (entry point checkin baru).
     function resetCheckinForm() {
@@ -194,8 +243,8 @@ export function useCheckinFlow() {
             if (checkinAddress.value) {
                 formData.append("alamat_text", checkinAddress.value);
             }
-            if (checkinPhoto.value) {
-                formData.append("foto", checkinPhoto.value);
+            if (checkinPhotoTempPath.value) {
+                formData.append("foto_temp_path", checkinPhotoTempPath.value);
             }
 
             try {
@@ -266,10 +315,10 @@ export function useCheckinFlow() {
         if (alamatText) {
             formData.append("alamat_text", alamatText);
         }
-        if (checkinPhoto.value) {
-            formData.append("foto", checkinPhoto.value);
+        if (checkinPhotoTempPath.value) {
+            formData.append("foto_temp_path", checkinPhotoTempPath.value);
         }
-
+        
         try {
             const res = await fetch("/api/checkin", {
                 method: "POST",
@@ -277,6 +326,7 @@ export function useCheckinFlow() {
                 body: formData,
             });
             const data = await res.json();
+
             submitting.value = false;
 
             if (data.success) {
@@ -340,6 +390,8 @@ export function useCheckinFlow() {
         existingPhotoUrl,
         isEditMode,
         submitting,
+        isUploadingPhoto,
+        checkinUploadProgress,
         resetCheckinForm,
         startCheckinGeo,
         enterCheckinResult,

@@ -67,23 +67,33 @@
                 "
             >
                 <template v-if="photoPreview">
-                    <img
-                        :src="photoPreview"
-                        style="
-                            max-height: 120px;
-                            border-radius: 8px;
-                            margin-bottom: 8px;
-                        "
-                    />
+                    <div style="position: relative; display: inline-block;">
+                        <img
+                            :src="photoPreview"
+                            style="
+                                max-height: 120px;
+                                border-radius: 8px;
+                                margin-bottom: 8px;
+                            "
+                        />
+                        <div v-if="isUploadingPhoto" style="position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 8px); background: rgba(0,0,0,0.5); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <span style="color: white; font-weight: bold; font-size: 16px;">{{ checkinUploadProgress }}%</span>
+                        </div>
+                    </div>
                     <span
-                        v-if="!isEditMode"
+                        v-if="!isEditMode && !isUploadingPhoto"
                         style="font-size: 11px; color: var(--accent)"
                         >Ganti Foto</span
                     >
                     <span
-                        v-else
+                        v-else-if="isEditMode"
                         style="font-size: 11px; color: var(--text-muted)"
                         >🔒 Foto tidak dapat diubah</span
+                    >
+                    <span
+                        v-else
+                        style="font-size: 11px; color: var(--text-muted)"
+                        >Mengunggah foto...</span
                     >
                 </template>
                 <template v-else>
@@ -93,10 +103,10 @@
         </div>
         <button
             class="btn btn-primary font-sans font-semibold text-[14.5px] rounded-[12px] border-none px-[18px] py-[14px] cursor-pointer flex items-center justify-center gap-[8px] w-full bg-[var(--accent)] text-[var(--accent-ink)] active:scale-[0.98] disabled:bg-[var(--border)] disabled:text-[var(--text-faint)] disabled:cursor-not-allowed"
-            :disabled="submitting || !checkinCoord || !photoPreview"
+            :disabled="submitting || isUploadingPhoto || !checkinCoord || !photoPreview"
             @click="handleSaveCheckin"
         >
-            {{ submitting ? "Menyimpan..." : "Simpan Kunjungan" }}
+            {{ submitting ? "Menyimpan..." : (isUploadingPhoto ? "Mengunggah Foto..." : "Simpan Kunjungan") }}
         </button>
         <div
             v-if="!checkinCoord"
@@ -139,6 +149,8 @@ const {
     existingPhotoUrl,
     isEditMode,
     submitting,
+    isUploadingPhoto,
+    checkinUploadProgress,
     enterCheckinResult,
     goToCheckinStep,
     saveCheckin,

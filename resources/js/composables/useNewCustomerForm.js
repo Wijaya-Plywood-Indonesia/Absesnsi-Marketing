@@ -1,4 +1,6 @@
 import { ref, watch } from "vue";
+import Uppy from '@uppy/core';
+import XHRUpload from '@uppy/xhr-upload';
 import { useGeolocation } from "@vueuse/core";
 import { useRouter } from "vue-router";
 import { useAuth } from "./useAuth";
@@ -29,12 +31,57 @@ const {
     immediate: false,
 });
 
+const ncFotoTempPath = ref(null);
+const isUploadingFoto = ref(false);
+const ncUploadProgress = ref(0);
+
 export function useNewCustomerForm() {
     const router = useRouter();
     const { csrfToken } = useAuth();
     const { formatAddr, addCustomer } = useCustomers();
 
+    async function uploadTempFoto(file) {
+        if (!file) {
+            ncFotoTempPath.value = null;
+            ncUploadProgress.value = 0;
+            return;
+        }
+
+        isUploadingFoto.value = true;
+        ncUploadProgress.value = 0;
+        const uppy = new Uppy({ autoProceed: false })
+            .use(XHRUpload, {
+                endpoint: "/api/upload-temp",
+                fieldName: "foto",
+                headers: { "X-CSRF-TOKEN": csrfToken.value },
+            });
+
+        uppy.on('progress', (progress) => {
+            ncUploadProgress.value = progress;
+        });
+
+        uppy.addFile({
+            name: file.name,
+            type: file.type,
+            data: file,
+        });
+
+        try {
+            const result = await uppy.upload();
+            if (result.successful.length > 0) {
+                ncFotoTempPath.value = result.successful[0].response.body.path;
+            } else {
+                alert("Upload gambar gagal, periksa internet Anda.");
+            }
+        } catch (e) {
+            alert("Upload gambar gagal: " + e.message);
+        } finally {
+            isUploadingFoto.value = false;
+        }
+    }
+
     function locateNewCustomer() {
+        // ... (sisanya tetap)
         ncLocating.value = true;
         ncCoord.value = null;
 
@@ -139,8 +186,8 @@ export function useNewCustomerForm() {
         formData.append("jenis", jenisValue);
         formData.append("latitude", lat);
         formData.append("longitude", lng);
-        if (fotoFile) {
-            formData.append("foto", fotoFile);
+        if (ncFotoTempPath.value) {
+            formData.append("foto_temp_path", ncFotoTempPath.value);
         }
 
         fetch("/api/customer", {
@@ -217,7 +264,10 @@ export function useNewCustomerForm() {
         ncJenis,
         ncJenisLain,
         submitting,
+        isUploadingFoto,
+        ncUploadProgress,
         locateNewCustomer,
         saveCustomer,
+        uploadTempFoto,
     };
 }

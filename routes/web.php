@@ -16,6 +16,7 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth')->group(function () {
+    Route::post('/api/upload-temp', [\App\Http\Controllers\UploadController::class, 'uploadTemp'])->name('api.upload.temp');
     Route::post('/api/customer', [CustomerController::class, 'saveCustomer'])->name('api.customer.save');
     Route::post('/api/checkin', [CheckinController::class, 'saveCheckin'])->name('api.checkin.save');
     Route::post('/api/order', [OrderController::class, 'saveOrder'])->name('api.order.save');

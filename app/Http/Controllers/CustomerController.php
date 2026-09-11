@@ -32,8 +32,14 @@ class CustomerController extends Controller
         ]);
 
         $fotoPath = null;
-        if ($request->hasFile('foto')) {
-            $fotoPath = $this->storeCustomerPhoto($request->file('foto'), $request->name);
+        $fotoFileOrPath = $request->hasFile('foto') ? $request->file('foto') : $request->input('foto_temp_path');
+        if ($fotoFileOrPath) {
+            if ($fotoFileOrPath instanceof UploadedFile) {
+                $fotoPath = $this->storeCustomerPhoto($fotoFileOrPath, $request->name);
+            } else {
+                // Move temp file
+                $fotoPath = $this->moveCustomerPhotoFromTemp($fotoFileOrPath, $request->name);
+            }
         }
 
         $customer = Customer::create([
@@ -105,5 +111,29 @@ class CustomerController extends Controller
         $file->storeAs($folder, $filename, $disk);
 
         return $folder.'/'.$filename;
+    }
+
+    private function moveCustomerPhotoFromTemp(string $tempPath, string $customerName): string
+    {
+        $disk = 'public';
+        $folder = 'customers';
+
+        $baseSlug = Str::slug($customerName) ?: 'toko';
+        $extension = pathinfo($tempPath, PATHINFO_EXTENSION) ?: 'jpg';
+
+        $filename = $baseSlug.'.'.$extension;
+        $counter = 1;
+
+        while (Storage::disk($disk)->exists($folder.'/'.$filename)) {
+            $filename = $baseSlug.'-'.$counter.'.'.$extension;
+            $counter++;
+        }
+
+        $newPath = $folder.'/'.$filename;
+        if (Storage::disk($disk)->exists($tempPath)) {
+            Storage::disk($disk)->move($tempPath, $newPath);
+        }
+
+        return $newPath;
     }
 }
