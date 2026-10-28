@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckinController;
 use App\Http\Controllers\CustomerController;
@@ -22,6 +23,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/order', [OrderController::class, 'saveOrder'])->name('api.order.save');
     Route::get('/api/visits/today/{customer}', [CheckinController::class, 'todayVisit']);
     Route::post('/api/checkin/{visit}/update', [CheckinController::class, 'updateCheckin']);
+
+    // Absensi
+    Route::post('/api/absensi', [AbsensiController::class, 'saveAbsensi'])->name('api.absensi.save');
+    Route::get('/api/absensi/today', [AbsensiController::class, 'todayStatus'])->name('api.absensi.today');
 
     // Tambahan untuk dropdown kota & kecamatan
     Route::get('/api/wilayah/kota', [WilayahController::class, 'getKota'])->name('api.wilayah.kota');

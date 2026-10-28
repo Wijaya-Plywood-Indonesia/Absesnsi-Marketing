@@ -3,6 +3,7 @@
 
     @php
         $summary = $this->getSummary();
+        $absensisGrouped = $this->getAbsensisGrouped();
         $selectedUser = $this->getSelectedUser();
         $visits = $selectedUser ? $this->getVisits() : collect();
         $addedCustomers = $selectedUser ? $this->getAddedCustomers() : collect();
@@ -42,6 +43,8 @@
                         <th class="px-3 py-2 text-center">Toko Tutup</th>
                         <th class="px-3 py-2 text-center">Tidak Ada Respon</th>
                         <th class="px-3 py-2 text-center">Total Customer Baru</th>
+                        <th class="px-3 py-2 text-center text-green-600 dark:text-green-400">🟢 Absen Masuk</th>
+                        <th class="px-3 py-2 text-center text-red-600 dark:text-red-400">🔴 Absen Keluar</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -64,12 +67,26 @@
                             <td class="px-3 py-2 text-center">{{ $item['tutup_count'] }}</td>
                             <td class="px-3 py-2 text-center">{{ $item['no_response_count'] }}</td>
                             <td class="px-3 py-2 text-center">{{ $item['added_customers_count'] }}</td>
+                            <td class="px-3 py-2 text-center">
+                                @if ($item['absen_masuk'])
+                                    <x-filament::badge color="success">{{ $item['absen_masuk'] }}</x-filament::badge>
+                                @else
+                                    <span class="text-gray-400 text-xs">—</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                @if ($item['absen_keluar'])
+                                    <x-filament::badge color="danger">{{ $item['absen_keluar'] }}</x-filament::badge>
+                                @else
+                                    <span class="text-gray-400 text-xs">—</span>
+                                @endif
+                            </td>
                         </tr>
 
                         {{-- Baris detail, langsung nempel di bawah baris sales yang diklik --}}
                         @if ($isOpen)
                             <tr>
-                                <td colspan="9" class="bg-gray-50 p-4 dark:bg-white/5" x-data="{ tab: 'visits' }">
+                                <td colspan="11" class="bg-gray-50 p-4 dark:bg-white/5" x-data="{ tab: 'visits' }">
                                     {{-- Tab switcher: Kunjungan & Customer Baru berbagi 1 tanggal yang sama --}}
                                     <div class="mb-4 flex gap-1 border-b border-gray-200 dark:border-white/10">
                                         <button type="button" @click.stop="tab = 'visits'"
@@ -211,7 +228,7 @@
                         @endif
                     @empty
                         <tr>
-                            <td colspan="9" class="px-3 py-4 text-center italic text-gray-500">
+                            <td colspan="11" class="px-3 py-4 text-center italic text-gray-500">
                                 Tidak ada aktivitas sales pada tanggal ini.
                             </td>
                         </tr>

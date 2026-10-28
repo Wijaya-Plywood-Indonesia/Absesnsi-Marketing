@@ -24,6 +24,9 @@
             </div>
         </div>
 
+        <!-- Alert absensi: muncul tepat di bawah brand bar, hanya untuk tab screen -->
+        <absensi-alert v-if="shouldShowBrandBar" />
+
         <router-view />
 
         <!-- Global Bottom Nav for Tab Screens -->
@@ -36,6 +39,9 @@
             :current-tab="currentScreen"
             @nav="nav"
         />
+
+        <!-- Pop-up absensi global -->
+        <absensi-popup />
     </div>
 </template>
 
@@ -43,11 +49,14 @@
 import { computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import BottomNav from "./Components/BottomNav.vue";
+import AbsensiAlert from "./Components/AbsensiAlert.vue";
+import AbsensiPopup from "./Components/AbsensiPopup.vue";
 import { useAuth } from "./composables/useAuth";
 import { useCustomers } from "./composables/useCustomers";
 import { useVisits } from "./composables/useVisits";
 import { useOrders } from "./composables/useOrders";
 import { useAppNav } from "./composables/useAppNav";
+import { useAbsensi } from "./composables/useAbsensi";
 
 const props = defineProps({
     initialUser: { type: Object, required: true },
@@ -66,6 +75,7 @@ const { customerList, initCustomers } = useCustomers();
 const { initVisits } = useVisits();
 const { initOrders, initProducts } = useOrders();
 const { nav } = useAppNav();
+const { fetchTodayStatus, evaluatePopupState } = useAbsensi();
 
 initAuth(props.initialUser, props.csrfToken);
 initCustomers(props.initialCustomers);
@@ -103,6 +113,13 @@ router.beforeEach((to, from, next) => {
 
 onMounted(async () => {
     await ensureGeoPermissionPrimed();
+    // Cek status absensi hari ini setelah mount
+    await fetchTodayStatus();
+
+    // Cek ulang pop-up keluar setiap 5 menit (untuk deteksi jam >= 16)
+    setInterval(() => {
+        evaluatePopupState();
+    }, 5 * 60 * 1000);
 });
 
 async function ensureGeoPermissionPrimed() {

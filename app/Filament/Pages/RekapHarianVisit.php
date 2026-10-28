@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Absensi;
 use App\Models\Customer;
 use App\Models\User;
 use App\Models\Visit;
@@ -134,37 +135,74 @@ class RekapHarianVisit extends Page implements HasForms
         })->values();
     }
 
+    /**
+     * Ambil semua absensi pada tanggal yang dipilih, dikelompokkan per user_id.
+     * Format: ['user_id' => ['masuk' => Absensi|null, 'keluar' => Absensi|null]]
+     */
+    public function getAbsensisGrouped(): array
+    {
+        $query = Absensi::where('tanggal', $this->tanggal());
+
+        if ($this->isMarketing()) {
+            $query->where('user_id', auth()->id());
+        }
+
+        $absensis = $query->get();
+
+        $grouped = [];
+        foreach ($absensis as $absensi) {
+            $uid = $absensi->user_id;
+            if (! isset($grouped[$uid])) {
+                $grouped[$uid] = ['masuk' => null, 'keluar' => null];
+            }
+            $grouped[$uid][$absensi->tipe] = $absensi;
+        }
+
+        return $grouped;
+    }
+
     public function getSummary(): array
     {
         // Sengaja query ulang tanpa filter selectedUserId, karena ringkasan
         // harus selalu menampilkan SEMUA sales (untuk dipilih), bukan cuma satu.
         $visitsQuery = Visit::where('tanggal', $this->tanggal());
         $addedCustomersQuery = Customer::whereDate('created_at', $this->tanggal());
+        $absensisQuery = Absensi::where('tanggal', $this->tanggal());
 
         if ($this->isMarketing()) {
             $visitsQuery->where('user_id', auth()->id());
             $addedCustomersQuery->where('user_id', auth()->id());
+            $absensisQuery->where('user_id', auth()->id());
         }
 
         $visits = $visitsQuery->get();
         $addedCustomers = $addedCustomersQuery->get();
+        $absensis = $absensisQuery->get();
 
         $summary = [];
-        $userIds = $visits->pluck('user_id')->merge($addedCustomers->pluck('user_id'))->unique();
+        // Gabungkan user_ids dari visits, customers, dan absensis
+        $userIds = $visits->pluck('user_id')
+            ->merge($addedCustomers->pluck('user_id'))
+            ->merge($absensis->pluck('user_id'))
+            ->unique();
         $activeUsers = User::whereIn('id', $userIds)->get();
 
         foreach ($activeUsers as $u) {
             $userVisits = $visits->where('user_id', $u->id);
+            $userAbsensiMasuk  = $absensis->where('user_id', $u->id)->where('tipe', 'masuk')->first();
+            $userAbsensiKeluar = $absensis->where('user_id', $u->id)->where('tipe', 'keluar')->first();
             $summary[] = [
-                'id' => $u->id,
-                'name' => $u->name,
-                'visits_count' => $userVisits->count(),
-                'order_count' => $userVisits->where('hasil', 'Order')->count(),
-                'followup_count' => $userVisits->where('hasil', 'Follow-up')->count(),
-                'komplain_count' => $userVisits->where('hasil', 'Komplain')->count(),
-                'tutup_count' => $userVisits->where('hasil', 'Toko Tutup')->count(),
-                'no_response_count' => $userVisits->where('hasil', 'Tidak Ada Respon')->count(),
+                'id'                    => $u->id,
+                'name'                  => $u->name,
+                'visits_count'          => $userVisits->count(),
+                'order_count'           => $userVisits->where('hasil', 'Order')->count(),
+                'followup_count'        => $userVisits->where('hasil', 'Follow-up')->count(),
+                'komplain_count'        => $userVisits->where('hasil', 'Komplain')->count(),
+                'tutup_count'           => $userVisits->where('hasil', 'Toko Tutup')->count(),
+                'no_response_count'     => $userVisits->where('hasil', 'Tidak Ada Respon')->count(),
                 'added_customers_count' => $addedCustomers->where('user_id', $u->id)->count(),
+                'absen_masuk'           => $userAbsensiMasuk?->jam,
+                'absen_keluar'          => $userAbsensiKeluar?->jam,
             ];
         }
 
@@ -281,12 +319,12 @@ class RekapHarianVisit extends Page implements HasForms
             $sheet->mergeCells("A{$row}:I{$row}");
             $row++;
 
-            $headersSummary = ['No', 'Nama Sales', 'Total Kunjungan', 'Order', 'Follow-up', 'Komplain', 'Toko Tutup', 'Tidak Ada Respon', 'Total Customer Baru'];
+            $headersSummary = ['No', 'Nama Sales', 'Total Kunjungan', 'Order', 'Follow-up', 'Komplain', 'Toko Tutup', 'Tidak Ada Respon', 'Total Customer Baru', 'Absen Masuk', 'Absen Keluar'];
             foreach ($headersSummary as $colIdx => $headerTitle) {
                 $colLetter = Coordinate::stringFromColumnIndex($colIdx + 1);
                 $sheet->setCellValue("{$colLetter}{$row}", $headerTitle);
             }
-            $sheet->getStyle("A{$row}:I{$row}")->applyFromArray($tableHeaderStyle);
+            $sheet->getStyle("A{$row}:K{$row}")->applyFromArray($tableHeaderStyle);
             $sheet->getRowDimension($row)->setRowHeight(25);
             $startDataRowSum = $row + 1;
             $row++;
@@ -302,15 +340,17 @@ class RekapHarianVisit extends Page implements HasForms
                 $sheet->setCellValue("G{$row}", $item['tutup_count']);
                 $sheet->setCellValue("H{$row}", $item['no_response_count']);
                 $sheet->setCellValue("I{$row}", $item['added_customers_count']);
+                $sheet->setCellValue("J{$row}", $item['absen_masuk'] ?? '-');
+                $sheet->setCellValue("K{$row}", $item['absen_keluar'] ?? '-');
 
                 $sheet->getRowDimension($row)->setRowHeight(20);
                 $row++;
             }
             $endDataRowSum = $row - 1;
             if ($endDataRowSum >= $startDataRowSum) {
-                $sheet->getStyle("A{$startDataRowSum}:I{$endDataRowSum}")->applyFromArray($borderThin);
+                $sheet->getStyle("A{$startDataRowSum}:K{$endDataRowSum}")->applyFromArray($borderThin);
                 $sheet->getStyle("A{$startDataRowSum}:A{$endDataRowSum}")->applyFromArray($centerAlign);
-                $sheet->getStyle("C{$startDataRowSum}:I{$endDataRowSum}")->applyFromArray($centerAlign);
+                $sheet->getStyle("C{$startDataRowSum}:K{$endDataRowSum}")->applyFromArray($centerAlign);
 
                 $sheet->setCellValue("A{$row}", 'TOTAL');
                 $sheet->mergeCells("A{$row}:B{$row}");
@@ -321,15 +361,17 @@ class RekapHarianVisit extends Page implements HasForms
                 $sheet->setCellValue("G{$row}", "=SUM(G{$startDataRowSum}:G{$endDataRowSum})");
                 $sheet->setCellValue("H{$row}", "=SUM(H{$startDataRowSum}:H{$endDataRowSum})");
                 $sheet->setCellValue("I{$row}", "=SUM(I{$startDataRowSum}:I{$endDataRowSum})");
-                $sheet->getStyle("A{$row}:I{$row}")->getFont()->setBold(true);
-                $sheet->getStyle("A{$row}:I{$row}")->applyFromArray($borderThin);
-                $sheet->getStyle("C{$row}:I{$row}")->applyFromArray($centerAlign);
+                $sheet->setCellValue("J{$row}", '-');
+                $sheet->setCellValue("K{$row}", '-');
+                $sheet->getStyle("A{$row}:K{$row}")->getFont()->setBold(true);
+                $sheet->getStyle("A{$row}:K{$row}")->applyFromArray($borderThin);
+                $sheet->getStyle("C{$row}:K{$row}")->applyFromArray($centerAlign);
                 $row++;
             } else {
                 $sheet->setCellValue("A{$row}", 'Tidak ada aktivitas sales pada tanggal ini.');
-                $sheet->mergeCells("A{$row}:I{$row}");
+                $sheet->mergeCells("A{$row}:K{$row}");
                 $sheet->getStyle("A{$row}")->getFont()->setItalic(true);
-                $sheet->getStyle("A{$row}:I{$row}")->applyFromArray($borderThin);
+                $sheet->getStyle("A{$row}:K{$row}")->applyFromArray($borderThin);
                 $row++;
             }
 
@@ -422,7 +464,7 @@ class RekapHarianVisit extends Page implements HasForms
                 $row++;
             }
 
-            foreach (range('A', 'I') as $col) {
+            foreach (range('A', 'K') as $col) {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
 
