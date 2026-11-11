@@ -18,6 +18,28 @@
         <div class="text-[11px] text-[var(--text-muted)] mt-[2px]">Customer Dipegang</div>
       </div>
     </div>
+    <div class="font-['Space_Grotesk'] text-[15px] font-semibold mt-[22px] mb-[10px]">Status Absensi Hari Ini</div>
+    <div class="card bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-[16px] flex flex-col gap-[10px]">
+      <div class="flex justify-between items-center text-[13.5px]">
+        <span class="text-[var(--text-muted)]">Absen Masuk</span>
+        <span v-if="absenMasuk" class="font-mono text-[12.5px] text-[var(--good)] font-semibold">{{ absenMasuk.jam }} WIB</span>
+        <span v-else class="text-[12px] text-[var(--text-faint)]">Belum Absen</span>
+      </div>
+      <div class="flex justify-between items-center text-[13.5px] pt-[8px] border-t border-[var(--border)]">
+        <span class="text-[var(--text-muted)]">Absen Pulang</span>
+        <span v-if="absenKeluar" class="font-mono text-[12.5px] text-[var(--accent)] font-semibold">{{ absenKeluar.jam }} WIB</span>
+        <span v-else class="text-[12px] text-[var(--text-faint)]">Belum Absen</span>
+      </div>
+      <button
+        v-if="absenMasuk && !absenKeluar"
+        type="button"
+        @click="bukaFormAbsensi('keluar')"
+        class="mt-[6px] w-full py-[10px] px-[14px] rounded-[10px] border border-[#ff6b6b]/40 bg-[#ff6b6b]/10 text-[#ff8787] font-semibold text-[13px] active:scale-[0.98] transition-transform cursor-pointer"
+      >
+        Absen Pulang Sekarang
+      </button>
+    </div>
+
     <div class="font-['Space_Grotesk'] text-[15px] font-semibold mt-[22px] mb-[10px]">Pengaturan</div>
     <div class="card bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-[16px]">
       <div class="flex justify-between py-[10px] border-b border-[var(--border)] text-[13.5px]"><span class="text-[var(--text-muted)]">Notifikasi</span><span class="font-mono text-[12.5px]">Aktif</span></div>
@@ -31,8 +53,10 @@
 import { useAuth } from "../composables/useAuth";
 import { useCustomers } from "../composables/useCustomers";
 import { useVisits } from "../composables/useVisits";
+import { useAbsensi } from "../composables/useAbsensi";
 
 const { user, getInitials, logout } = useAuth();
 const { customerList } = useCustomers();
 const { totalVisitsThisMonth } = useVisits();
+const { absenMasuk, absenKeluar, bukaFormAbsensi } = useAbsensi();
 </script>

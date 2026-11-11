@@ -111,7 +111,12 @@ export function useAbsensi() {
     function dismissKeluarPopup() {
         keluarPopupDismissed = true;
         showAbsenKeluarPopup.value = false;
-        if (absenMasuk.value && !absenKeluar.value) showAbsenKeluarAlert.value = true;
+        const jam = new Date().getHours();
+        if (absenMasuk.value && !absenKeluar.value && jam >= 16) {
+            showAbsenKeluarAlert.value = true;
+        } else {
+            showAbsenKeluarAlert.value = false;
+        }
     }
 
     // ── Buka form absensi (set tipe & mulai GPS) ─────────────────────────────

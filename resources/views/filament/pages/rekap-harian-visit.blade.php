@@ -11,7 +11,7 @@
         $fotoUrl = fn(?string $path) => $path
             ? (str_starts_with($path, 'http')
                 ? $path
-                : \Illuminate\Support\Facades\Storage::disk('public')->url($path))
+                : '/storage/' . ltrim($path, '/'))
             : null;
     @endphp
 
@@ -69,14 +69,34 @@
                             <td class="px-3 py-2 text-center">{{ $item['added_customers_count'] }}</td>
                             <td class="px-3 py-2 text-center">
                                 @if ($item['absen_masuk'])
-                                    <x-filament::badge color="success">{{ $item['absen_masuk'] }}</x-filament::badge>
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <x-filament::badge color="success">{{ $item['absen_masuk'] }}</x-filament::badge>
+                                        @if ($item['foto_absen_masuk'])
+                                            <button type="button"
+                                                @click.stop="lightboxSrc = '{{ $fotoUrl($item['foto_absen_masuk']) }}'"
+                                                title="Lihat foto absen masuk"
+                                                class="text-gray-400 hover:text-primary-600 transition p-0.5 rounded hover:bg-gray-100 dark:hover:bg-white/10">
+                                                <x-heroicon-m-camera class="h-4 w-4" />
+                                            </button>
+                                        @endif
+                                    </div>
                                 @else
                                     <span class="text-gray-400 text-xs">—</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2 text-center">
                                 @if ($item['absen_keluar'])
-                                    <x-filament::badge color="danger">{{ $item['absen_keluar'] }}</x-filament::badge>
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <x-filament::badge color="danger">{{ $item['absen_keluar'] }}</x-filament::badge>
+                                        @if ($item['foto_absen_keluar'])
+                                            <button type="button"
+                                                @click.stop="lightboxSrc = '{{ $fotoUrl($item['foto_absen_keluar']) }}'"
+                                                title="Lihat foto absen keluar"
+                                                class="text-gray-400 hover:text-primary-600 transition p-0.5 rounded hover:bg-gray-100 dark:hover:bg-white/10">
+                                                <x-heroicon-m-camera class="h-4 w-4" />
+                                            </button>
+                                        @endif
+                                    </div>
                                 @else
                                     <span class="text-gray-400 text-xs">—</span>
                                 @endif
@@ -85,8 +105,68 @@
 
                         {{-- Baris detail, langsung nempel di bawah baris sales yang diklik --}}
                         @if ($isOpen)
+                            @php
+                                $userAbsensi = $absensisGrouped[$item['id']] ?? ['masuk' => null, 'keluar' => null];
+                            @endphp
                             <tr>
                                 <td colspan="11" class="bg-gray-50 p-4 dark:bg-white/5" x-data="{ tab: 'visits' }">
+                                    {{-- Info Kartu Absensi Masuk & Keluar Sales --}}
+                                    <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-gray-800">
+                                            @if (!empty($userAbsensi['masuk']?->foto))
+                                                <img src="{{ $fotoUrl($userAbsensi['masuk']->foto) }}"
+                                                    @click.stop="lightboxSrc = '{{ $fotoUrl($userAbsensi['masuk']->foto) }}'"
+                                                    class="h-16 w-16 flex-shrink-0 cursor-pointer rounded-lg object-cover ring-1 ring-gray-200 transition hover:ring-2 hover:ring-success-500"
+                                                    alt="Foto Absen Masuk" />
+                                            @else
+                                                <div class="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-gray-700">
+                                                    <x-heroicon-o-camera class="h-6 w-6" />
+                                                </div>
+                                            @endif
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="inline-block h-2 w-2 rounded-full bg-success-500"></span>
+                                                    <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Absen Masuk</span>
+                                                </div>
+                                                <div class="mt-1 text-base font-bold text-gray-900 dark:text-white">
+                                                    {{ $userAbsensi['masuk']?->jam ?? 'Belum Absen' }}
+                                                </div>
+                                                @if (!empty($userAbsensi['masuk']?->catatan))
+                                                    <div class="mt-0.5 truncate text-xs text-gray-500" title="{{ $userAbsensi['masuk']->catatan }}">
+                                                        {{ $userAbsensi['masuk']->catatan }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-gray-800">
+                                            @if (!empty($userAbsensi['keluar']?->foto))
+                                                <img src="{{ $fotoUrl($userAbsensi['keluar']->foto) }}"
+                                                    @click.stop="lightboxSrc = '{{ $fotoUrl($userAbsensi['keluar']->foto) }}'"
+                                                    class="h-16 w-16 flex-shrink-0 cursor-pointer rounded-lg object-cover ring-1 ring-gray-200 transition hover:ring-2 hover:ring-danger-500"
+                                                    alt="Foto Absen Keluar" />
+                                            @else
+                                                <div class="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-gray-700">
+                                                    <x-heroicon-o-camera class="h-6 w-6" />
+                                                </div>
+                                            @endif
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="inline-block h-2 w-2 rounded-full bg-danger-500"></span>
+                                                    <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Absen Keluar</span>
+                                                </div>
+                                                <div class="mt-1 text-base font-bold text-gray-900 dark:text-white">
+                                                    {{ $userAbsensi['keluar']?->jam ?? 'Belum Absen' }}
+                                                </div>
+                                                @if (!empty($userAbsensi['keluar']?->catatan))
+                                                    <div class="mt-0.5 truncate text-xs text-gray-500" title="{{ $userAbsensi['keluar']->catatan }}">
+                                                        {{ $userAbsensi['keluar']->catatan }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {{-- Tab switcher: Kunjungan & Customer Baru berbagi 1 tanggal yang sama --}}
                                     <div class="mb-4 flex gap-1 border-b border-gray-200 dark:border-white/10">
                                         <button type="button" @click.stop="tab = 'visits'"

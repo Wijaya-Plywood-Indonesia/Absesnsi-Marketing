@@ -30,7 +30,7 @@
                         <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
                             {{ showAbsenMasukPopup
                                 ? 'Silakan ambil foto selfie & pastikan GPS terkunci.'
-                                : 'Sudah pukul 16:00+, silakan absen sebelum selesai bertugas.'
+                                : 'Silakan ambil foto selfie & pastikan GPS terkunci sebelum selesai bertugas.'
                             }}
                         </div>
                     </div>

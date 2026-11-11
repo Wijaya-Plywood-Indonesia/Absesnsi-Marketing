@@ -50,6 +50,7 @@ class RekapHarianVisit extends Page implements HasForms
         $this->form->fill([
             'tanggal' => $this->tanggal,
         ]);
+        $this->tanggal = now()->toDateString();
     }
 
     public function form(Schema $schema): Schema
@@ -61,7 +62,7 @@ class RekapHarianVisit extends Page implements HasForms
                     ->native(false)
                     ->live()
                     ->afterStateUpdated(function ($state) {
-                        $this->tanggal = $state;
+                        $this->tanggal = $state ? Carbon::parse($state)->toDateString() : null;
                         // Tanggal berubah -> daftar sales aktif bisa berbeda, reset pilihan.
                         $this->selectedUserId = null;
                     }),
@@ -95,7 +96,7 @@ class RekapHarianVisit extends Page implements HasForms
 
     protected function tanggal(): string
     {
-        return $this->tanggal ?? now()->toDateString();
+        return $this->tanggal ? Carbon::parse($this->tanggal)->toDateString() : now()->toDateString();
     }
 
     protected function isMarketing(): bool
@@ -203,6 +204,8 @@ class RekapHarianVisit extends Page implements HasForms
                 'added_customers_count' => $addedCustomers->where('user_id', $u->id)->count(),
                 'absen_masuk'           => $userAbsensiMasuk?->jam,
                 'absen_keluar'          => $userAbsensiKeluar?->jam,
+                'foto_absen_masuk'      => $userAbsensiMasuk?->foto,
+                'foto_absen_keluar'     => $userAbsensiKeluar?->foto,
             ];
         }
 
