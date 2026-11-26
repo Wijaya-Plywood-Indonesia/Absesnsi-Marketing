@@ -7,6 +7,7 @@
 .phpunit.result.cache
 /.codex
 /.cursor/
+/.fleet
 /.idea
 /.nova
 /.phpunit.cache
@@ -26,20 +27,23 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Additional environment files
+# Additional environment files & backups
 .env.*
 !.env.example
 !.env.docker.example
 !.env.local.example
+*.bak
 
 # Editor temporary files
 *.swp
 *.swo
 *~
 
-# Docker backup files
+# Docker local / backup files
+docker-compose.local.yml.bak
 docker-compose.yml.backup
 docker-compose.yml.save
+docker/php/local.ini
 
 # Cloudflare credentials
 docker/certbot/cloudflare.ini
