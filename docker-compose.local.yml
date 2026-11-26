@@ -7,7 +7,12 @@ x-app: &app
     dockerfile: docker/php/Dockerfile
     target: app
   env_file: .env.local
-  volumes: [storage:/var/www/html/storage]
+  volumes:
+    - storage:/var/www/html/storage
+    - .:/var/www/html
+    - /var/www/html/vendor
+    - /var/www/html/public/build
+    - ./docker/php/local.ini:/usr/local/etc/php/conf.d/zz-local.ini:ro
   depends_on:
     db: { condition: service_healthy }
     redis: { condition: service_started }
@@ -36,7 +41,7 @@ services:
       MARIADB_USER: ${DB_USERNAME:-absensi}
       MARIADB_PASSWORD: ${DB_PASSWORD:-absensi}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
-    ports: ["127.0.0.1:3307:3306"]
+    ports: ["127.0.0.1:3310:3306"]
     volumes: [dbdata:/var/lib/mysql]
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
